@@ -1,0 +1,24 @@
+{
+  "name": "Belgique vs France – Scoreboard",
+  "short_name": "BELGFR",
+  "description": "Tableau de scores en temps réel pour Eliott, Timéo et Lilouan.",
+  "start_url": "./",
+  "display": "standalone",
+  "lang": "fr-FR",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='24' fill='%230f172a'/%3E%3Ctext x='50%' y='58%' dominant-baseline='middle' text-anchor='middle' font-size='60' fill='%23f97316' font-family='Segoe UI, sans-serif'%3EBF%3C/text%3E%3C/svg%3E",
+      "sizes": "120x120",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23ef4444'/%3E%3Ctext x='50%' y='56%' dominant-baseline='middle' text-anchor='middle' font-size='88' fill='%23ffffff' font-family='Segoe UI, sans-serif'%3E+1%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
