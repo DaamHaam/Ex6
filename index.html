@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mon projet</title>
+    <meta name="theme-color" content="#1f2937" />
+    <title>Belgique vs France – Tableau des différences</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,77 +16,62 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="background-gradient" aria-hidden="true"></div>
-    <div class="page">
-      <header class="hero">
-        <span class="hero__tag">Nouveau</span>
-        <h1 class="hero__title">Une base moderne pour ton prochain projet</h1>
-        <p class="hero__subtitle">
-          Cette page statique te donne un point de départ élégant pour explorer les
-          fonctionnalités de Pages. Personnalise-la en fonction de ton besoin et
-          publie en quelques minutes.
-        </p>
-        <div class="hero__cta">
-          <a class="button button--primary" href="#features">Découvrir les sections</a>
-          <a class="button button--secondary" href="#version">Voir la version</a>
+    <div class="background" aria-hidden="true"></div>
+    <div class="app" id="app-root">
+      <header class="app__header">
+        <div>
+          <p class="app__tag">Scoreboard</p>
+          <h1 class="app__title">Belgique vs France</h1>
+          <p class="app__subtitle">
+            Suivi des différences entre Eliott, Timéo et Lilouan. Les scores
+            démarrent à <strong>4</strong> chacun et se synchronisent via
+            Supabase.
+          </p>
         </div>
+        <button id="install-button" class="button button--ghost" hidden>
+          Installer l'application
+        </button>
       </header>
 
-      <main>
-        <section id="features" class="section">
-          <h2 class="section__title">Ce que tu obtiens</h2>
-          <div class="card-grid">
-            <article class="card">
-              <h3>Structure claire</h3>
-              <p>
-                Un HTML propre et accessible, prêt à être adapté. Les sections sont
-                organisées pour faciliter la personnalisation.
-              </p>
-            </article>
-            <article class="card">
-              <h3>Design responsive</h3>
-              <p>
-                La mise en page s'adapte automatiquement aux mobiles, tablettes et
-                ordinateurs grâce aux styles modernes.
-              </p>
-            </article>
-            <article class="card">
-              <h3>Versionnement simple</h3>
-              <p>
-                Suis facilement l'évolution de ton projet en mettant à jour le numéro de
-                version ci-dessous.
-              </p>
-            </article>
+      <main class="app__main" aria-live="polite">
+        <section class="panel" aria-labelledby="scores-title">
+          <div class="panel__header">
+            <h2 id="scores-title">Tableau des scores</h2>
+            <p class="panel__description">
+              Ajoute ou retire un point, et laisse un commentaire si tu veux garder le contexte.
+            </p>
           </div>
+          <div id="players" class="players" role="list"></div>
         </section>
 
-        <section class="section section--highlight">
-          <div class="highlight">
-            <div class="highlight__content">
-              <h2>Prêt à te lancer ?</h2>
-              <p>
-                Utilise ce modèle comme fondation pour ajouter tes propres composants,
-                intégrer des scripts ou connecter un backend.
-              </p>
-            </div>
-            <a class="button button--primary" href="#">Commencer</a>
+        <section class="panel panel--compact" aria-labelledby="history-title">
+          <div class="panel__header">
+            <h2 id="history-title">Historique des actions</h2>
+            <p class="panel__description">
+              Chaque modification est enregistrée et partagée en temps réel.
+            </p>
           </div>
+          <ol id="history" class="history" aria-live="polite"></ol>
+          <p id="history-empty" class="history__empty" hidden>
+            Aucune action pour le moment.
+          </p>
         </section>
       </main>
 
-      <footer class="footer">
-        <p id="version" class="footer__version">Version actuelle : <strong>v0.2</strong></p>
-        <p class="footer__note">Mis à jour avec amour et un soupçon de CSS ✨</p>
+      <footer class="app__footer">
+        <div class="footer__actions">
+          <button id="undo-button" class="button button--secondary">
+            Annuler la dernière action
+          </button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
       </footer>
     </div>
 
-    <script>
-      // Exemple SW – garde ces chemins RELATIFS si tu utilises un service worker.
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
-        });
-      }
-    </script>
+    <noscript>
+      Cette application nécessite JavaScript pour fonctionner correctement.
+    </noscript>
+
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
