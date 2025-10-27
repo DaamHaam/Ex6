@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Tableau de scores Belgique vs France pour Eliott, Timéo et Lilouan." />
+    <meta name="theme-color" content="#0f172a" />
+    <title>Scoreboard – Belgique vs France</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Belgique vs France</h1>
+      <p>Suivi en direct des points marqués par Eliott, Timéo et Lilouan dans le jeu des différences.</p>
+    </header>
+    <main>
+      <section class="players" id="players" aria-live="polite"></section>
+      <aside class="history">
+        <header>
+          <h2>Historique des points</h2>
+          <p id="status" class="status">Chargement des données…</p>
+        </header>
+        <div class="history-controls">
+          <button id="undo" type="button" disabled>Annuler le dernier point</button>
+        </div>
+        <ul class="history-list" id="history" aria-live="polite"></ul>
+      </aside>
+    </main>
+
+    <template id="player-template">
+      <article class="player-card">
+        <div class="player-header">
+          <h2 class="player-name"></h2>
+          <span class="player-score" aria-live="polite">0</span>
+        </div>
+        <div class="comment-field">
+          <label>Commentaire (facultatif)</label>
+          <textarea class="player-comment" placeholder="Décris l'action si besoin…"></textarea>
+        </div>
+        <div class="player-actions">
+          <button type="button" class="primary" data-action="add">➕ Ajouter un point</button>
+          <button type="button" class="secondary" data-action="remove">➖ Retirer un point</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="history-item-template">
+      <li class="history-item">
+        <strong>
+          <span class="history-player"></span>
+          <span class="badge"></span>
+        </strong>
+        <time></time>
+        <p class="history-comment"></p>
+      </li>
+    </template>
+
+    <div id="loading" class="loading" hidden>Chargement…</div>
+
+    <script type="module" src="./app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
