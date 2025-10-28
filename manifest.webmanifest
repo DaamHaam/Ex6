@@ -1,11 +1,11 @@
 {
-  "name": "Belgique vs France – Scoreboard",
-  "short_name": "BELGFR",
-  "start_url": "./",
+  "name": "BELGFR – Scores v0.02",
+  "short_name": "BELGFR 0.02",
+  "start_url": "./?v=0.02",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1f2937",
-  "description": "Tableau des différences pour Eliott, Timéo et Lilouan synchronisé avec Supabase.",
+  "description": "Scores en direct pour Eliott, Timéo et Lilouan.",
   "lang": "fr",
   "icons": [
     {
