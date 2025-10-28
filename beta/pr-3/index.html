@@ -50,42 +50,103 @@
           aria-labelledby="tab-add"
           data-panel="add"
         >
-          <form id="add-player-form" class="player-form" autocomplete="off">
-            <div class="player-form__fields">
-              <div class="player-form__field">
-                <label class="player-form__label" for="add-player-name">Nom</label>
-                <input
-                  id="add-player-name"
-                  class="player-form__input"
-                  name="name"
-                  type="text"
-                  placeholder="Nom du joueur"
-                  required
-                  autocomplete="off"
+          <div class="panel__toolbar">
+            <button
+              id="add-player-toggle"
+              class="panel__action-button"
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+              aria-controls="add-player-dialog"
+            >
+              <span class="sr-only">Ajouter un nouveau joueur</span>
+              <svg
+                class="panel__action-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z"
                 />
-              </div>
-              <div class="player-form__field player-form__field--compact">
-                <label class="player-form__label" for="add-player-initial-score"
-                  >Score initial</label
-                >
-                <input
-                  id="add-player-initial-score"
-                  class="player-form__input"
-                  name="initial_score"
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  max="99"
-                  step="1"
-                  value="4"
-                  required
-                />
-              </div>
-            </div>
-            <button id="add-player-submit" class="player-form__submit" type="submit">
-              Ajouter le joueur
+              </svg>
             </button>
-          </form>
+            <div
+              id="add-player-dialog"
+              class="player-form-popover"
+              role="dialog"
+              aria-modal="false"
+              aria-labelledby="add-player-form-title"
+              hidden
+            >
+              <form
+                id="add-player-form"
+                class="player-form player-form--popover"
+                autocomplete="off"
+              >
+                <div class="player-form__header">
+                  <h2 id="add-player-form-title" class="player-form__title">
+                    Nouveau joueur
+                  </h2>
+                  <button
+                    type="button"
+                    class="player-form__close"
+                    data-close-player-form
+                    aria-label="Fermer le formulaire"
+                  >
+                    <svg
+                      class="player-form__close-icon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M12 10.586 16.95 5.64a1 1 0 0 1 1.414 1.414L13.414 12l4.95 4.95a1 1 0 0 1-1.414 1.414L12 13.414l-4.95 4.95a1 1 0 0 1-1.414-1.414L10.586 12 5.636 7.05A1 1 0 0 1 7.05 5.636L12 10.586Z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="player-form__fields">
+                  <div class="player-form__field">
+                    <label class="player-form__label" for="add-player-name">Nom</label>
+                    <input
+                      id="add-player-name"
+                      class="player-form__input"
+                      name="name"
+                      type="text"
+                      placeholder="Nom du joueur"
+                      required
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="player-form__field player-form__field--compact">
+                    <label class="player-form__label" for="add-player-initial-score"
+                      >Score initial</label
+                    >
+                    <input
+                      id="add-player-initial-score"
+                      class="player-form__input"
+                      name="initial_score"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      max="99"
+                      step="1"
+                      value="4"
+                      required
+                    />
+                  </div>
+                </div>
+                <button id="add-player-submit" class="player-form__submit" type="submit">
+                  Ajouter le joueur
+                </button>
+              </form>
+            </div>
+          </div>
           <div id="add-players" class="panel__players" role="list"></div>
         </section>
         <section

@@ -28,6 +28,9 @@ const addPlayerForm = document.querySelector('#add-player-form');
 const addPlayerNameInput = document.querySelector('#add-player-name');
 const addPlayerInitialScoreInput = document.querySelector('#add-player-initial-score');
 const addPlayerSubmit = document.querySelector('#add-player-submit');
+const addPlayerToggle = document.querySelector('#add-player-toggle');
+const addPlayerDialog = document.querySelector('#add-player-dialog');
+const addPlayerCloseButtons = document.querySelectorAll('[data-close-player-form]');
 
 if (versionBadge) {
   versionBadge.textContent = APP_VERSION;
@@ -37,6 +40,7 @@ if (versionBadge) {
 let game;
 let channel;
 let isInitialLoad = true;
+let isPlayerFormOpen = false;
 
 const state = {
   players: [],
@@ -47,6 +51,54 @@ function setStatus(message = '', tone = 'info') {
   if (!statusElement) return;
   statusElement.textContent = message;
   statusElement.dataset.tone = tone;
+}
+
+function handlePlayerFormKeydown(event) {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  closePlayerForm();
+}
+
+function handlePlayerFormPointerDown(event) {
+  if (!addPlayerDialog || !addPlayerToggle) return;
+  const target = event.target;
+  if (!(target instanceof Node)) return;
+  if (addPlayerDialog.contains(target) || addPlayerToggle.contains(target)) return;
+  closePlayerForm({ focusToggle: false });
+}
+
+function openPlayerForm() {
+  if (!addPlayerDialog || !addPlayerToggle) return;
+  if (isPlayerFormOpen) return;
+  addPlayerDialog.hidden = false;
+  addPlayerDialog.classList.add('player-form-popover--visible');
+  addPlayerToggle.setAttribute('aria-expanded', 'true');
+  addPlayerToggle.classList.add('panel__action-button--active');
+  isPlayerFormOpen = true;
+  if (addPlayerNameInput) {
+    window.setTimeout(() => {
+      addPlayerNameInput.focus();
+    }, 0);
+  }
+  document.addEventListener('keydown', handlePlayerFormKeydown);
+  document.addEventListener('mousedown', handlePlayerFormPointerDown);
+  document.addEventListener('touchstart', handlePlayerFormPointerDown);
+}
+
+function closePlayerForm({ focusToggle = true } = {}) {
+  if (!addPlayerDialog || !addPlayerToggle) return;
+  if (!isPlayerFormOpen) return;
+  addPlayerDialog.classList.remove('player-form-popover--visible');
+  addPlayerDialog.hidden = true;
+  addPlayerToggle.setAttribute('aria-expanded', 'false');
+  addPlayerToggle.classList.remove('panel__action-button--active');
+  isPlayerFormOpen = false;
+  document.removeEventListener('keydown', handlePlayerFormKeydown);
+  document.removeEventListener('mousedown', handlePlayerFormPointerDown);
+  document.removeEventListener('touchstart', handlePlayerFormPointerDown);
+  if (focusToggle) {
+    addPlayerToggle.focus();
+  }
 }
 
 async function fetchOrCreateGame() {
@@ -283,6 +335,7 @@ async function loadData({ silent = false } = {}) {
     setupTabs();
     attachAdditionEvents();
     attachHistoryEvents();
+    attachPlayerFormToggle();
     attachPlayerCreationEvents();
     isInitialLoad = false;
   }
@@ -391,6 +444,7 @@ function attachPlayerCreationEvents() {
       addPlayerForm.reset();
       addPlayerInitialScoreInput.value = addPlayerInitialScoreInput.defaultValue;
       await loadData({ silent: true });
+      closePlayerForm();
     } catch (error) {
       console.error(error);
       setStatus("Impossible d'ajouter ce joueur.", 'error');
@@ -398,6 +452,24 @@ function attachPlayerCreationEvents() {
       addPlayerSubmit.disabled = false;
       addPlayerSubmit.textContent = previousText;
     }
+  });
+}
+
+function attachPlayerFormToggle() {
+  if (!addPlayerToggle || !addPlayerDialog) return;
+
+  addPlayerToggle.addEventListener('click', () => {
+    if (isPlayerFormOpen) {
+      closePlayerForm({ focusToggle: false });
+    } else {
+      openPlayerForm();
+    }
+  });
+
+  addPlayerCloseButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      closePlayerForm();
+    });
   });
 }
 
@@ -511,6 +583,10 @@ function setupTabs() {
       panel.hidden = !isActive;
       panel.classList.toggle('panel--active', isActive);
     });
+
+    if (targetPanel !== 'add') {
+      closePlayerForm({ focusToggle: false });
+    }
   }
 
   buttons.forEach((button, index) => {

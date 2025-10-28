@@ -99,6 +99,124 @@ body {
   flex: 1;
 }
 
+.panel__toolbar {
+  align-self: flex-end;
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.panel__action-button {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.panel__action-button:hover,
+.panel__action-button:focus-visible {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.55);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.panel__action-button--active {
+  background: rgba(56, 189, 248, 0.3);
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.panel__action-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.player-form-popover {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: min(22rem, 90vw);
+  z-index: 20;
+}
+
+.player-form-popover--visible {
+  animation: popover-in 180ms ease;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.player-form--popover {
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.55);
+}
+
+.player-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.player-form__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.player-form__close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.player-form__close:hover,
+.player-form__close:focus-visible {
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--text);
+  outline: none;
+}
+
+.player-form__close-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .panel__players {
   display: grid;
   gap: 0.75rem;
