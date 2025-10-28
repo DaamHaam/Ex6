@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.02';
+const APP_VERSION = '0.03';
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: 4 },
   { name: 'Timéo', initial_score: 4 },
@@ -199,23 +199,45 @@ function renderHistory(history, players) {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .forEach((entry) => {
       const li = document.createElement('li');
-      const playerName = playerNames.get(entry.player_id) ?? 'Joueur';
-      const deltaLabel = entry.delta > 0 ? '+1' : '-1';
-      const deltaClass = entry.delta > 0 ? 'history__delta--up' : 'history__delta--down';
-      const commentBlock = entry.comment
-        ? `<p class="history__comment">${entry.comment}</p>`
-        : '';
+      li.className = 'history__item';
+      li.dataset.entryId = entry.id;
 
-      li.innerHTML = `
-        <div class="history__row">
-          <span class="history__player">${playerName}</span>
-          <span class="history__delta ${deltaClass}">${deltaLabel}</span>
-          <time class="history__time" datetime="${entry.created_at}">
-            ${formatTimestamp(entry.created_at)}
-          </time>
-        </div>
-        ${commentBlock}
-      `;
+      const row = document.createElement('div');
+      row.className = 'history__row';
+
+      const playerName = playerNames.get(entry.player_id) ?? 'Joueur';
+      const playerSpan = document.createElement('span');
+      playerSpan.className = 'history__player';
+      playerSpan.textContent = playerName;
+
+      const deltaLabel = entry.delta > 0 ? '+1' : '-1';
+      const deltaSpan = document.createElement('span');
+      deltaSpan.className = `history__delta ${
+        entry.delta > 0 ? 'history__delta--up' : 'history__delta--down'
+      }`;
+      deltaSpan.textContent = deltaLabel;
+
+      const timeElement = document.createElement('time');
+      timeElement.className = 'history__time';
+      timeElement.dateTime = entry.created_at;
+      timeElement.textContent = formatTimestamp(entry.created_at);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'history__delete';
+      deleteButton.type = 'button';
+      deleteButton.title = 'Supprimer';
+      deleteButton.setAttribute('aria-label', `Supprimer le point de ${playerName}`);
+      deleteButton.textContent = '×';
+
+      row.append(playerSpan, deltaSpan, timeElement, deleteButton);
+      li.append(row);
+
+      if (entry.comment) {
+        const comment = document.createElement('p');
+        comment.className = 'history__comment';
+        comment.textContent = entry.comment;
+        li.append(comment);
+      }
 
       historyList.append(li);
     });
@@ -272,6 +294,7 @@ async function loadData({ silent = false } = {}) {
 
   if (isInitialLoad) {
     attachPlayerEvents();
+    attachHistoryEvents();
     isInitialLoad = false;
   }
 }
@@ -397,6 +420,57 @@ function attachPlayerEvents() {
     if (!playerId) return;
     handleDelta(playerId, 1);
   });
+}
+
+function attachHistoryEvents() {
+  historyList.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const button = target.closest('.history__delete');
+    if (!button) return;
+    if (button.disabled) return;
+    const item = button.closest('[data-entry-id]');
+    const entryId = item?.dataset.entryId;
+    if (!entryId) return;
+    deleteHistoryEntry(entryId);
+  });
+
+  historyList.addEventListener('keydown', (event) => {
+    if (!(event.target instanceof HTMLElement)) return;
+    if (!event.target.classList.contains('history__delete')) return;
+    if (event.target.disabled) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    const item = event.target.closest('[data-entry-id]');
+    const entryId = item?.dataset.entryId;
+    if (!entryId) return;
+    deleteHistoryEntry(entryId);
+  });
+}
+
+async function deleteHistoryEntry(entryId) {
+  if (!entryId) return;
+
+  const item = historyList.querySelector(`[data-entry-id="${entryId}"]`);
+  const deleteButton = item?.querySelector('.history__delete');
+  if (deleteButton) {
+    deleteButton.disabled = true;
+  }
+
+  try {
+    const { error } = await supabase.from('points').delete().eq('id', entryId);
+
+    if (error) throw error;
+
+    setStatus('Entrée supprimée.', 'success');
+    await loadData({ silent: true });
+  } catch (error) {
+    console.error(error);
+    setStatus('Impossible de supprimer cette entrée.', 'error');
+    if (deleteButton) {
+      deleteButton.disabled = false;
+    }
+  }
 }
 
 function registerRealtime(gameId) {
