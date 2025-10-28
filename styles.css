@@ -168,6 +168,12 @@ body {
   gap: 0.5rem;
 }
 
+.history__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .history__empty {
   margin: 0;
   font-size: 0.85rem;
@@ -176,7 +182,7 @@ body {
 
 .history__row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   gap: 0.5rem;
   font-size: 0.9rem;
   align-items: baseline;
@@ -201,6 +207,31 @@ body {
 .history__time {
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+.history__delete {
+  justify-self: end;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.1rem 0.2rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.history__delete:hover,
+.history__delete:focus-visible {
+  color: var(--text-primary);
+  background-color: rgba(148, 163, 184, 0.15);
+  outline: none;
+}
+
+.history__delete:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .history__comment {
