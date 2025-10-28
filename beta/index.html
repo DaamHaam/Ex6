@@ -1,22 +1,76 @@
-<!doctype html> 
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mon projet</title>
+    <meta name="theme-color" content="#111827" />
+    <title>BELGFR – Scores v0.06</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <h1>Hello Pages 👋</h1>
-    <p>Version: <span id="version">v0.1</span></p>
+    <div class="app" id="app-root">
+      <span class="app__version" aria-label="Version 0.06">0.06</span>
+      <main class="layout" aria-live="polite">
+        <div class="tabs" role="tablist" aria-label="Modes de gestion">
+          <button
+            id="tab-add"
+            class="tabs__button tabs__button--active"
+            role="tab"
+            type="button"
+            data-panel="add"
+            aria-selected="true"
+            aria-controls="panel-add"
+          >
+            Ajouter
+          </button>
+          <button
+            id="tab-remove"
+            class="tabs__button"
+            role="tab"
+            type="button"
+            data-panel="remove"
+            aria-selected="false"
+            aria-controls="panel-remove"
+          >
+            Retirer
+          </button>
+        </div>
+        <section
+          id="panel-add"
+          class="panel panel--active"
+          role="tabpanel"
+          aria-labelledby="tab-add"
+          data-panel="add"
+        >
+          <div id="add-players" class="panel__players" role="list"></div>
+        </section>
+        <section
+          id="panel-remove"
+          class="panel panel--remove"
+          role="tabpanel"
+          aria-labelledby="tab-remove"
+          data-panel="remove"
+          hidden
+        >
+          <div class="history" aria-label="Historique">
+            <ol id="history" class="history__list" aria-live="polite"></ol>
+            <p id="history-empty" class="history__empty" hidden>Aucune action</p>
+          </div>
+        </section>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </main>
+    </div>
 
-    <script>
-      // Exemple SW – garde ces chemins RELATIFS si tu utilises un service worker.
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
-        });
-      }
-    </script>
+    <noscript>Active JavaScript pour suivre les scores.</noscript>
+
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
