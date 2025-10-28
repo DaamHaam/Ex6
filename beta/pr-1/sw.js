@@ -1,7 +1,7 @@
-const CACHE_NAME = 'belgfr-scoreboard-v4';
+const CACHE_NAME = 'belgfr-scoreboard-v5';
 const ASSETS = [
   './',
-  './?v=0.04',
+  './?v=0.05',
   './index.html',
   './styles.css',
   './app.js',

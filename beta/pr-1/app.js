@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.04';
+const APP_VERSION = '0.05';
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: 4 },
   { name: 'Timéo', initial_score: 4 },
@@ -15,12 +15,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },
 });
 
-const playersContainer = document.querySelector('#players');
+const addPlayersContainer = document.querySelector('#add-players');
+const removePlayersContainer = document.querySelector('#remove-players');
 const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
 const statusElement = document.querySelector('#status');
-const undoButton = document.querySelector('#undo-button');
 const versionBadge = document.querySelector('.app__version');
+const tabButtons = document.querySelectorAll('.tabs__button');
+const panels = document.querySelectorAll('.panel');
 
 if (versionBadge) {
   versionBadge.textContent = APP_VERSION;
@@ -36,9 +38,8 @@ const state = {
   history: [],
 };
 
-undoButton.disabled = true;
-
 function setStatus(message = '', tone = 'info') {
+  if (!statusElement) return;
   statusElement.textContent = message;
   statusElement.dataset.tone = tone;
 }
@@ -124,65 +125,87 @@ function sortPlayers(players) {
   });
 }
 
+function createPlayerCard(player, mode) {
+  const diff = player.score - player.initial_score;
+
+  const card = document.createElement('article');
+  card.className = `player-line player-line--${mode}`;
+  card.dataset.playerId = player.id;
+  card.dataset.playerName = player.name;
+
+  const header = document.createElement('div');
+  header.className = 'player-line__header';
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'player-line__name';
+  nameSpan.textContent = player.name;
+
+  const scoreSpan = document.createElement('span');
+  scoreSpan.className = 'player-line__score';
+  if (diff > 0) {
+    scoreSpan.classList.add('player-line__score--up');
+  } else if (diff < 0) {
+    scoreSpan.classList.add('player-line__score--down');
+  }
+  scoreSpan.dataset.diff = diff;
+  scoreSpan.textContent = String(player.score);
+
+  header.append(nameSpan, scoreSpan);
+
+  const controls = document.createElement('div');
+  controls.className = 'player-line__controls';
+
+  const commentInput = document.createElement('input');
+  commentInput.className = 'comment-input';
+  commentInput.type = 'text';
+  commentInput.placeholder = 'Commentaire (optionnel)';
+  commentInput.autocomplete = 'off';
+  commentInput.setAttribute(
+    'aria-label',
+    `Commentaire pour ${mode === 'add' ? 'ajouter' : 'retirer'} un point à ${player.name}`
+  );
+
+  const actionButton = document.createElement('button');
+  actionButton.className = 'player-line__action';
+  actionButton.dataset.action = mode === 'add' ? 'increment' : 'decrement';
+  actionButton.type = 'button';
+  actionButton.textContent = mode === 'add' ? '+1' : '−1';
+  actionButton.setAttribute(
+    'aria-label',
+    `${mode === 'add' ? 'Ajouter' : 'Retirer'} un point à ${player.name}`
+  );
+
+  if (mode === 'remove') {
+    actionButton.classList.add('player-line__action--remove');
+  }
+
+  controls.append(commentInput, actionButton);
+  card.append(header, controls);
+
+  return card;
+}
+
 function renderPlayers(players) {
-  playersContainer.innerHTML = '';
+  if (addPlayersContainer) {
+    addPlayersContainer.innerHTML = '';
+  }
+  if (removePlayersContainer) {
+    removePlayersContainer.innerHTML = '';
+  }
 
   players.forEach((player) => {
-    const diff = player.score - player.initial_score;
-    const line = document.createElement('article');
-    line.className = 'player-line';
-    line.dataset.playerId = player.id;
-    line.dataset.playerName = player.name;
-    line.setAttribute('role', 'listitem');
-
-    const scoreClass =
-      diff > 0 ? 'player-line__score--up' : diff < 0 ? 'player-line__score--down' : '';
-    const commentId = `comment-${player.id}`;
-
-    line.innerHTML = `
-      <span class="player-line__name">${player.name}</span>
-      <button
-        class="player-line__action"
-        data-action="decrement"
-        type="button"
-        aria-label="Retirer un point à ${player.name}"
-      >
-        −
-      </button>
-      <span class="player-line__score ${scoreClass}" data-diff="${diff}">${player.score}</span>
-      <button
-        class="player-line__action"
-        data-action="increment"
-        type="button"
-        aria-label="Ajouter un point à ${player.name}"
-      >
-        +
-      </button>
-      <button
-        class="player-line__comment-toggle"
-        type="button"
-        aria-controls="${commentId}"
-        aria-expanded="false"
-        title="Commentaire optionnel"
-      >
-        💬
-      </button>
-      <div class="player-line__comment-field" id="${commentId}" hidden>
-        <input
-          class="comment-input"
-          type="text"
-          name="${commentId}"
-          placeholder="Commentaire"
-          autocomplete="off"
-        />
-      </div>
-    `;
-
-    playersContainer.append(line);
+    if (addPlayersContainer) {
+      addPlayersContainer.append(createPlayerCard(player, 'add'));
+    }
+    if (removePlayersContainer) {
+      removePlayersContainer.append(createPlayerCard(player, 'remove'));
+    }
   });
 }
 
 function renderHistory(history, players) {
+  if (!historyList || !historyEmpty) return;
+
   historyList.innerHTML = '';
 
   if (history.length === 0) {
@@ -210,7 +233,7 @@ function renderHistory(history, players) {
       playerSpan.className = 'history__player';
       playerSpan.textContent = playerName;
 
-      const deltaLabel = entry.delta > 0 ? '+1' : '-1';
+      const deltaLabel = entry.delta > 0 ? '+1' : '−1';
       const deltaSpan = document.createElement('span');
       deltaSpan.className = `history__delta ${
         entry.delta > 0 ? 'history__delta--up' : 'history__delta--down'
@@ -241,10 +264,6 @@ function renderHistory(history, players) {
 
       historyList.append(li);
     });
-}
-
-function updateUndoButton(history) {
-  undoButton.disabled = history.length === 0;
 }
 
 async function loadData({ silent = false } = {}) {
@@ -286,28 +305,29 @@ async function loadData({ silent = false } = {}) {
 
   renderPlayers(state.players);
   renderHistory(state.history, state.players);
-  updateUndoButton(state.history);
 
   if (!silent) {
     setStatus('Synchronisé.', 'success');
   }
 
   if (isInitialLoad) {
-    attachPlayerEvents();
+    setupTabs();
+    attachAdditionEvents();
+    attachRemovalEvents();
     attachHistoryEvents();
     isInitialLoad = false;
   }
 }
 
-async function handleDelta(playerId, delta) {
-  const card = playersContainer.querySelector(`[data-player-id="${playerId}"]`);
-  if (!card) return;
+async function handleDelta(playerId, delta, { commentInput, triggerButton, playerName } = {}) {
+  if (!playerId || !game) return;
 
-  const commentInput = card.querySelector('.comment-input');
   const comment = commentInput?.value.trim();
-  const playerName = card.dataset.playerName ?? 'joueur';
-  const buttons = card.querySelectorAll('button[data-action]');
-  buttons.forEach((button) => (button.disabled = true));
+  const name = playerName ?? 'joueur';
+
+  if (triggerButton) {
+    triggerButton.disabled = true;
+  }
 
   try {
     const { error } = await supabase.from('points').insert({
@@ -321,114 +341,106 @@ async function handleDelta(playerId, delta) {
 
     if (commentInput) {
       commentInput.value = '';
-      const commentField = card.querySelector('.player-line__comment-field');
-      const toggle = card.querySelector('.player-line__comment-toggle');
-      if (commentField && toggle) {
-        commentField.hidden = true;
-        toggle.setAttribute('aria-expanded', 'false');
-      }
     }
-    setStatus(`${delta > 0 ? '+1' : '-1'} ${playerName}`, 'success');
+
+    setStatus(`${delta > 0 ? '+1' : '−1'} ${name}`, 'success');
     await loadData({ silent: true });
   } catch (error) {
     console.error(error);
-    setStatus("Échec de l'enregistrement.", 'error');
+    setStatus('Impossible de mettre à jour le score.', 'error');
   } finally {
-    buttons.forEach((button) => (button.disabled = false));
+    if (triggerButton) {
+      triggerButton.disabled = false;
+    }
   }
 }
 
-async function undoLast() {
-  undoButton.disabled = true;
-  try {
-    const { data: lastEntry, error: selectError } = await supabase
-      .from('points')
-      .select('id, player_id, delta, created_at')
-      .eq('game_id', game.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+function attachAdditionEvents() {
+  if (!addPlayersContainer) return;
 
-    if (selectError && selectError.code !== 'PGRST116') {
-      throw selectError;
-    }
-
-    if (!lastEntry) {
-      setStatus('Rien à annuler.', 'info');
-      updateUndoButton(state.history);
-      return;
-    }
-
-    const { error: deleteError } = await supabase
-      .from('points')
-      .delete()
-      .eq('id', lastEntry.id);
-
-    if (deleteError) throw deleteError;
-
-    setStatus('Action annulée.', 'success');
-    await loadData({ silent: true });
-  } catch (error) {
-    console.error(error);
-    setStatus("Échec de l'annulation.", 'error');
-  } finally {
-    updateUndoButton(state.history);
-  }
-}
-
-function attachPlayerEvents() {
-  playersContainer.addEventListener('click', (event) => {
+  addPlayersContainer.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    const toggle = target.closest('.player-line__comment-toggle');
-    if (toggle) {
-      const card = toggle.closest('.player-line');
-      if (!card) return;
-      const field = card.querySelector('.player-line__comment-field');
-      const input = card.querySelector('.comment-input');
-      if (!field || !input) return;
-      const expanded = toggle.getAttribute('aria-expanded') === 'true';
-      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-      field.hidden = expanded;
-      if (!expanded) {
-        input.focus();
-      }
-      return;
-    }
-    const button = target.closest('button[data-action]');
+    const button = target.closest('button[data-action="increment"]');
     if (!button) return;
-    const container = button.closest('.player-line');
-    if (!container) return;
-    const playerId = container.dataset.playerId;
+    const card = button.closest('.player-line');
+    if (!card) return;
+    const playerId = card.dataset.playerId;
     if (!playerId) return;
-
-    if (button.dataset.action === 'increment') {
-      handleDelta(playerId, 1);
-    } else if (button.dataset.action === 'decrement') {
-      handleDelta(playerId, -1);
-    }
+    const commentInput = card.querySelector('.comment-input');
+    handleDelta(playerId, 1, {
+      commentInput,
+      triggerButton: button,
+      playerName: card.dataset.playerName,
+    });
   });
 
-  playersContainer.addEventListener('keydown', (event) => {
+  addPlayersContainer.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
-    if (!(event.target instanceof HTMLElement)) return;
-    if (!event.target.classList.contains('comment-input')) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.classList.contains('comment-input')) return;
     event.preventDefault();
-    const container = event.target.closest('.player-line');
-    if (!container) return;
-    const playerId = container.dataset.playerId;
+    const card = target.closest('.player-line');
+    if (!card) return;
+    const playerId = card.dataset.playerId;
     if (!playerId) return;
-    handleDelta(playerId, 1);
+    const button = card.querySelector('button[data-action="increment"]');
+    handleDelta(playerId, 1, {
+      commentInput: target,
+      triggerButton: button ?? undefined,
+      playerName: card.dataset.playerName,
+    });
+  });
+}
+
+function attachRemovalEvents() {
+  if (!removePlayersContainer) return;
+
+  removePlayersContainer.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const button = target.closest('button[data-action="decrement"]');
+    if (!button) return;
+    const card = button.closest('.player-line');
+    if (!card) return;
+    const playerId = card.dataset.playerId;
+    if (!playerId) return;
+    const commentInput = card.querySelector('.comment-input');
+    handleDelta(playerId, -1, {
+      commentInput,
+      triggerButton: button,
+      playerName: card.dataset.playerName,
+    });
+  });
+
+  removePlayersContainer.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.classList.contains('comment-input')) return;
+    event.preventDefault();
+    const card = target.closest('.player-line');
+    if (!card) return;
+    const playerId = card.dataset.playerId;
+    if (!playerId) return;
+    const button = card.querySelector('button[data-action="decrement"]');
+    handleDelta(playerId, -1, {
+      commentInput: target,
+      triggerButton: button ?? undefined,
+      playerName: card.dataset.playerName,
+    });
   });
 }
 
 function attachHistoryEvents() {
+  if (!historyList) return;
+
   historyList.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const button = target.closest('.history__delete');
-    if (!button) return;
-    if (button.disabled) return;
+    if (!button || button.disabled) return;
     const item = button.closest('[data-entry-id]');
     const entryId = item?.dataset.entryId;
     if (!entryId) return;
@@ -436,12 +448,12 @@ function attachHistoryEvents() {
   });
 
   historyList.addEventListener('keydown', (event) => {
-    if (!(event.target instanceof HTMLElement)) return;
-    if (!event.target.classList.contains('history__delete')) return;
-    if (event.target.disabled) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.classList.contains('history__delete') || target.disabled) return;
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    const item = event.target.closest('[data-entry-id]');
+    const item = target.closest('[data-entry-id]');
     const entryId = item?.dataset.entryId;
     if (!entryId) return;
     deleteHistoryEntry(entryId);
@@ -451,7 +463,7 @@ function attachHistoryEvents() {
 async function deleteHistoryEntry(entryId) {
   if (!entryId) return;
 
-  const item = historyList.querySelector(`[data-entry-id="${entryId}"]`);
+  const item = historyList?.querySelector(`[data-entry-id="${entryId}"]`);
   const deleteButton = item?.querySelector('.history__delete');
   if (deleteButton) {
     deleteButton.disabled = true;
@@ -473,6 +485,49 @@ async function deleteHistoryEntry(entryId) {
   }
 }
 
+function setupTabs() {
+  if (tabButtons.length === 0 || panels.length === 0) return;
+
+  const buttons = Array.from(tabButtons);
+  const panelElements = Array.from(panels);
+
+  function activate(targetPanel) {
+    buttons.forEach((button) => {
+      const isActive = button.dataset.panel === targetPanel;
+      button.classList.toggle('tabs__button--active', isActive);
+      button.setAttribute('aria-selected', String(isActive));
+      button.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+
+    panelElements.forEach((panel) => {
+      const isActive = panel.dataset.panel === targetPanel;
+      panel.hidden = !isActive;
+      panel.classList.toggle('panel--active', isActive);
+    });
+  }
+
+  buttons.forEach((button, index) => {
+    button.addEventListener('click', () => {
+      activate(button.dataset.panel);
+    });
+
+    button.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      event.preventDefault();
+      const offset = event.key === 'ArrowRight' ? 1 : -1;
+      const nextIndex = (index + offset + buttons.length) % buttons.length;
+      const nextButton = buttons[nextIndex];
+      nextButton.focus();
+      activate(nextButton.dataset.panel);
+    });
+  });
+
+  const defaultButton = document.querySelector('.tabs__button--active') ?? buttons[0];
+  if (defaultButton) {
+    activate(defaultButton.dataset.panel);
+  }
+}
+
 function registerRealtime(gameId) {
   channel = supabase
     .channel(`points-game-${gameId}`)
@@ -488,7 +543,7 @@ function registerRealtime(gameId) {
     )
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        setStatus('Connecté à Supabase Realtime.', 'success');
+        setStatus('Synchro temps réel active.', 'success');
       }
     });
 }
@@ -534,14 +589,12 @@ async function init() {
     await ensurePlayersExist(game.id);
     await loadData();
     registerRealtime(game.id);
-    setStatus('Synchronisé.', 'success');
   } catch (error) {
     console.error(error);
     setStatus('Une erreur est survenue au démarrage de la partie.', 'error');
   }
 }
 
-undoButton.addEventListener('click', () => undoLast());
 registerServiceWorker();
 init();
 
