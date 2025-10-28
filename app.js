@@ -19,11 +19,9 @@ const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
 const statusElement = document.querySelector('#status');
 const undoButton = document.querySelector('#undo-button');
-const installButton = document.querySelector('#install-button');
 
 let game;
 let channel;
-let deferredPrompt = null;
 let isInitialLoad = true;
 
 const state = {
@@ -36,13 +34,6 @@ undoButton.disabled = true;
 function setStatus(message = '', tone = 'info') {
   statusElement.textContent = message;
   statusElement.dataset.tone = tone;
-}
-
-function formatDelta(diff) {
-  if (diff === 0) return 'Égalité avec le départ';
-  return diff > 0
-    ? `+${diff} depuis le départ`
-    : `${diff} depuis le départ`;
 }
 
 function formatTimestamp(value) {
@@ -131,46 +122,56 @@ function renderPlayers(players) {
 
   players.forEach((player) => {
     const diff = player.score - player.initial_score;
-    const card = document.createElement('article');
-    card.className = 'player-card';
-    card.dataset.playerId = player.id;
-    card.dataset.playerName = player.name;
-    card.setAttribute('role', 'listitem');
+    const line = document.createElement('article');
+    line.className = 'player-line';
+    line.dataset.playerId = player.id;
+    line.dataset.playerName = player.name;
+    line.setAttribute('role', 'listitem');
 
-    const scoreClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
+    const scoreClass =
+      diff > 0 ? 'player-line__score--up' : diff < 0 ? 'player-line__score--down' : '';
+    const commentId = `comment-${player.id}`;
 
-    card.innerHTML = `
-      <div class="player-card__header">
-        <h3 class="player-card__name">${player.name}</h3>
-        <p class="player-card__score ${scoreClass}">${player.score}</p>
-      </div>
-      <p class="player-card__baseline">${formatDelta(diff)}</p>
-      <div class="player-card__controls">
-        <div class="comment-field">
-          <label for="comment-${player.id}">
-            Commentaire (facultatif)
-            <input
-              id="comment-${player.id}"
-              class="comment-input"
-              type="text"
-              name="comment-${player.id}"
-              placeholder="Ex. Trouvé une différence"
-              autocomplete="off"
-            />
-          </label>
-        </div>
-        <div class="actions">
-          <button class="button button--primary" data-action="increment" type="button">
-            +1
-          </button>
-          <button class="button button--danger" data-action="decrement" type="button">
-            -1
-          </button>
-        </div>
+    line.innerHTML = `
+      <span class="player-line__name">${player.name}</span>
+      <button
+        class="player-line__action"
+        data-action="decrement"
+        type="button"
+        aria-label="Retirer un point à ${player.name}"
+      >
+        −
+      </button>
+      <span class="player-line__score ${scoreClass}" data-diff="${diff}">${player.score}</span>
+      <button
+        class="player-line__action"
+        data-action="increment"
+        type="button"
+        aria-label="Ajouter un point à ${player.name}"
+      >
+        +
+      </button>
+      <button
+        class="player-line__comment-toggle"
+        type="button"
+        aria-controls="${commentId}"
+        aria-expanded="false"
+        title="Commentaire optionnel"
+      >
+        💬
+      </button>
+      <div class="player-line__comment-field" id="${commentId}" hidden>
+        <input
+          class="comment-input"
+          type="text"
+          name="${commentId}"
+          placeholder="Commentaire"
+          autocomplete="off"
+        />
       </div>
     `;
 
-    playersContainer.append(card);
+    playersContainer.append(line);
   });
 }
 
@@ -202,11 +203,11 @@ function renderHistory(history, players) {
         <div class="history__row">
           <span class="history__player">${playerName}</span>
           <span class="history__delta ${deltaClass}">${deltaLabel}</span>
+          <time class="history__time" datetime="${entry.created_at}">
+            ${formatTimestamp(entry.created_at)}
+          </time>
         </div>
         ${commentBlock}
-        <time class="history__time" datetime="${entry.created_at}">
-          ${formatTimestamp(entry.created_at)}
-        </time>
       `;
 
       historyList.append(li);
@@ -219,7 +220,7 @@ function updateUndoButton(history) {
 
 async function loadData({ silent = false } = {}) {
   if (!silent) {
-    setStatus('Chargement des scores…');
+    setStatus('Chargement…');
   }
 
   const [{ data: playersData, error: playersError }, { data: historyData, error: historyError }] =
@@ -259,7 +260,7 @@ async function loadData({ silent = false } = {}) {
   updateUndoButton(state.history);
 
   if (!silent) {
-    setStatus('Synchronisé avec Supabase.', 'success');
+    setStatus('Synchronisé.', 'success');
   }
 
   if (isInitialLoad) {
@@ -288,15 +289,20 @@ async function handleDelta(playerId, delta) {
 
     if (error) throw error;
 
-    if (commentInput) commentInput.value = '';
-    setStatus(
-      `${delta > 0 ? '+1' : '-1'} pour ${playerName} enregistré.`,
-      'success'
-    );
+    if (commentInput) {
+      commentInput.value = '';
+      const commentField = card.querySelector('.player-line__comment-field');
+      const toggle = card.querySelector('.player-line__comment-toggle');
+      if (commentField && toggle) {
+        commentField.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+    setStatus(`${delta > 0 ? '+1' : '-1'} ${playerName}`, 'success');
     await loadData({ silent: true });
   } catch (error) {
     console.error(error);
-    setStatus("Impossible d'enregistrer la modification.", 'error');
+    setStatus("Échec de l'enregistrement.", 'error');
   } finally {
     buttons.forEach((button) => (button.disabled = false));
   }
@@ -318,7 +324,7 @@ async function undoLast() {
     }
 
     if (!lastEntry) {
-      setStatus('Aucune action à annuler.', 'info');
+      setStatus('Rien à annuler.', 'info');
       updateUndoButton(state.history);
       return;
     }
@@ -330,11 +336,11 @@ async function undoLast() {
 
     if (deleteError) throw deleteError;
 
-    setStatus('Dernière action annulée.', 'success');
+    setStatus('Action annulée.', 'success');
     await loadData({ silent: true });
   } catch (error) {
     console.error(error);
-    setStatus("Impossible d'annuler la dernière action.", 'error');
+    setStatus("Échec de l'annulation.", 'error');
   } finally {
     updateUndoButton(state.history);
   }
@@ -344,11 +350,26 @@ function attachPlayerEvents() {
   playersContainer.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    const toggle = target.closest('.player-line__comment-toggle');
+    if (toggle) {
+      const card = toggle.closest('.player-line');
+      if (!card) return;
+      const field = card.querySelector('.player-line__comment-field');
+      const input = card.querySelector('.comment-input');
+      if (!field || !input) return;
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      field.hidden = expanded;
+      if (!expanded) {
+        input.focus();
+      }
+      return;
+    }
     const button = target.closest('button[data-action]');
     if (!button) return;
-    const card = button.closest('.player-card');
-    if (!card) return;
-    const playerId = card.dataset.playerId;
+    const container = button.closest('.player-line');
+    if (!container) return;
+    const playerId = container.dataset.playerId;
     if (!playerId) return;
 
     if (button.dataset.action === 'increment') {
@@ -363,9 +384,9 @@ function attachPlayerEvents() {
     if (!(event.target instanceof HTMLElement)) return;
     if (!event.target.classList.contains('comment-input')) return;
     event.preventDefault();
-    const card = event.target.closest('.player-card');
-    if (!card) return;
-    const playerId = card.dataset.playerId;
+    const container = event.target.closest('.player-line');
+    if (!container) return;
+    const playerId = container.dataset.playerId;
     if (!playerId) return;
     handleDelta(playerId, 1);
   });
@@ -401,37 +422,13 @@ function registerServiceWorker() {
   }
 }
 
-function setupPwaInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault();
-    deferredPrompt = event;
-    installButton.hidden = false;
-  });
-
-  installButton?.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      setStatus("Merci d'avoir installé l'application !", 'success');
-    }
-    deferredPrompt = null;
-    installButton.hidden = true;
-  });
-
-  window.addEventListener('appinstalled', () => {
-    installButton.hidden = true;
-    setStatus('Application installée sur cet appareil.', 'success');
-  });
-}
-
 async function init() {
   try {
     game = await fetchOrCreateGame();
     await ensurePlayersExist(game.id);
     await loadData();
     registerRealtime(game.id);
-    setStatus('Prêt à compter les différences !', 'success');
+    setStatus('Synchronisé.', 'success');
   } catch (error) {
     console.error(error);
     setStatus('Une erreur est survenue au démarrage de la partie.', 'error');
@@ -440,7 +437,6 @@ async function init() {
 
 undoButton.addEventListener('click', () => undoLast());
 registerServiceWorker();
-setupPwaInstallPrompt();
 init();
 
 window.addEventListener('beforeunload', () => {

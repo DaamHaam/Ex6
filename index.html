@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1f2937" />
-    <title>Belgique vs France – Tableau des différences</title>
+    <meta name="theme-color" content="#111827" />
+    <title>Belgique vs France</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,61 +16,31 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="background" aria-hidden="true"></div>
     <div class="app" id="app-root">
-      <header class="app__header">
-        <div>
-          <p class="app__tag">Scoreboard</p>
-          <h1 class="app__title">Belgique vs France</h1>
-          <p class="app__subtitle">
-            Suivi des différences entre Eliott, Timéo et Lilouan. Les scores
-            démarrent à <strong>4</strong> chacun et se synchronisent via
-            Supabase.
-          </p>
-        </div>
-        <button id="install-button" class="button button--ghost" hidden>
-          Installer l'application
-        </button>
-      </header>
-
-      <main class="app__main" aria-live="polite">
-        <section class="panel" aria-labelledby="scores-title">
-          <div class="panel__header">
-            <h2 id="scores-title">Tableau des scores</h2>
-            <p class="panel__description">
-              Ajoute ou retire un point, et laisse un commentaire si tu veux garder le contexte.
-            </p>
-          </div>
-          <div id="players" class="players" role="list"></div>
+      <span class="app__version" aria-label="Version 0.01">0.01</span>
+      <main class="layout" aria-live="polite">
+        <section class="scores" aria-label="Scores">
+          <div id="players" class="scores__list" role="list"></div>
         </section>
-
-        <section class="panel panel--compact" aria-labelledby="history-title">
-          <div class="panel__header">
-            <h2 id="history-title">Historique des actions</h2>
-            <p class="panel__description">
-              Chaque modification est enregistrée et partagée en temps réel.
-            </p>
-          </div>
-          <ol id="history" class="history" aria-live="polite"></ol>
-          <p id="history-empty" class="history__empty" hidden>
-            Aucune action pour le moment.
-          </p>
+        <section class="history" aria-label="Historique">
+          <ol id="history" class="history__list" aria-live="polite"></ol>
+          <p id="history-empty" class="history__empty" hidden>Aucune action</p>
         </section>
       </main>
-
       <footer class="app__footer">
-        <div class="footer__actions">
-          <button id="undo-button" class="button button--secondary">
-            Annuler la dernière action
-          </button>
-        </div>
+        <button
+          id="undo-button"
+          class="button button--undo"
+          type="button"
+          aria-label="Annuler la dernière action"
+        >
+          Annuler
+        </button>
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </footer>
     </div>
 
-    <noscript>
-      Cette application nécessite JavaScript pour fonctionner correctement.
-    </noscript>
+    <noscript>Active JavaScript pour suivre les scores.</noscript>
 
     <script type="module" src="./app.js"></script>
   </body>
