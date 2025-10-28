@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.05';
+const APP_VERSION = '0.06';
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: 4 },
   { name: 'Timéo', initial_score: 4 },
@@ -16,7 +16,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 const addPlayersContainer = document.querySelector('#add-players');
-const removePlayersContainer = document.querySelector('#remove-players');
 const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
 const statusElement = document.querySelector('#status');
@@ -42,14 +41,6 @@ function setStatus(message = '', tone = 'info') {
   if (!statusElement) return;
   statusElement.textContent = message;
   statusElement.dataset.tone = tone;
-}
-
-function formatTimestamp(value) {
-  const date = new Date(value);
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  }).format(date);
 }
 
 async function fetchOrCreateGame() {
@@ -125,11 +116,11 @@ function sortPlayers(players) {
   });
 }
 
-function createPlayerCard(player, mode) {
+function createAdditionCard(player) {
   const diff = player.score - player.initial_score;
 
   const card = document.createElement('article');
-  card.className = `player-line player-line--${mode}`;
+  card.className = 'player-line player-line--add';
   card.dataset.playerId = player.id;
   card.dataset.playerName = player.name;
 
@@ -162,22 +153,15 @@ function createPlayerCard(player, mode) {
   commentInput.autocomplete = 'off';
   commentInput.setAttribute(
     'aria-label',
-    `Commentaire pour ${mode === 'add' ? 'ajouter' : 'retirer'} un point à ${player.name}`
+    `Commentaire pour ajouter un point à ${player.name}`
   );
 
   const actionButton = document.createElement('button');
   actionButton.className = 'player-line__action';
-  actionButton.dataset.action = mode === 'add' ? 'increment' : 'decrement';
+  actionButton.dataset.action = 'increment';
   actionButton.type = 'button';
-  actionButton.textContent = mode === 'add' ? '+1' : '−1';
-  actionButton.setAttribute(
-    'aria-label',
-    `${mode === 'add' ? 'Ajouter' : 'Retirer'} un point à ${player.name}`
-  );
-
-  if (mode === 'remove') {
-    actionButton.classList.add('player-line__action--remove');
-  }
+  actionButton.textContent = '+1';
+  actionButton.setAttribute('aria-label', `Ajouter un point à ${player.name}`);
 
   controls.append(commentInput, actionButton);
   card.append(header, controls);
@@ -188,19 +172,10 @@ function createPlayerCard(player, mode) {
 function renderPlayers(players) {
   if (addPlayersContainer) {
     addPlayersContainer.innerHTML = '';
+    players.forEach((player) => {
+      addPlayersContainer.append(createAdditionCard(player));
+    });
   }
-  if (removePlayersContainer) {
-    removePlayersContainer.innerHTML = '';
-  }
-
-  players.forEach((player) => {
-    if (addPlayersContainer) {
-      addPlayersContainer.append(createPlayerCard(player, 'add'));
-    }
-    if (removePlayersContainer) {
-      removePlayersContainer.append(createPlayerCard(player, 'remove'));
-    }
-  });
 }
 
 function renderHistory(history, players) {
@@ -233,18 +208,6 @@ function renderHistory(history, players) {
       playerSpan.className = 'history__player';
       playerSpan.textContent = playerName;
 
-      const deltaLabel = entry.delta > 0 ? '+1' : '−1';
-      const deltaSpan = document.createElement('span');
-      deltaSpan.className = `history__delta ${
-        entry.delta > 0 ? 'history__delta--up' : 'history__delta--down'
-      }`;
-      deltaSpan.textContent = deltaLabel;
-
-      const timeElement = document.createElement('time');
-      timeElement.className = 'history__time';
-      timeElement.dateTime = entry.created_at;
-      timeElement.textContent = formatTimestamp(entry.created_at);
-
       const deleteButton = document.createElement('button');
       deleteButton.className = 'history__delete';
       deleteButton.type = 'button';
@@ -252,7 +215,7 @@ function renderHistory(history, players) {
       deleteButton.setAttribute('aria-label', `Supprimer le point de ${playerName}`);
       deleteButton.textContent = '×';
 
-      row.append(playerSpan, deltaSpan, timeElement, deleteButton);
+      row.append(playerSpan, deleteButton);
       li.append(row);
 
       if (entry.comment) {
@@ -307,13 +270,12 @@ async function loadData({ silent = false } = {}) {
   renderHistory(state.history, state.players);
 
   if (!silent) {
-    setStatus('Synchronisé.', 'success');
+    setStatus();
   }
 
   if (isInitialLoad) {
     setupTabs();
     attachAdditionEvents();
-    attachRemovalEvents();
     attachHistoryEvents();
     isInitialLoad = false;
   }
@@ -394,45 +356,6 @@ function attachAdditionEvents() {
   });
 }
 
-function attachRemovalEvents() {
-  if (!removePlayersContainer) return;
-
-  removePlayersContainer.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const button = target.closest('button[data-action="decrement"]');
-    if (!button) return;
-    const card = button.closest('.player-line');
-    if (!card) return;
-    const playerId = card.dataset.playerId;
-    if (!playerId) return;
-    const commentInput = card.querySelector('.comment-input');
-    handleDelta(playerId, -1, {
-      commentInput,
-      triggerButton: button,
-      playerName: card.dataset.playerName,
-    });
-  });
-
-  removePlayersContainer.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains('comment-input')) return;
-    event.preventDefault();
-    const card = target.closest('.player-line');
-    if (!card) return;
-    const playerId = card.dataset.playerId;
-    if (!playerId) return;
-    const button = card.querySelector('button[data-action="decrement"]');
-    handleDelta(playerId, -1, {
-      commentInput: target,
-      triggerButton: button ?? undefined,
-      playerName: card.dataset.playerName,
-    });
-  });
-}
-
 function attachHistoryEvents() {
   if (!historyList) return;
 
@@ -474,7 +397,7 @@ async function deleteHistoryEntry(entryId) {
 
     if (error) throw error;
 
-    setStatus('Entrée supprimée.', 'success');
+    setStatus('Point retiré.', 'success');
     await loadData({ silent: true });
   } catch (error) {
     console.error(error);
@@ -541,11 +464,7 @@ function registerRealtime(gameId) {
       },
       () => loadData({ silent: true })
     )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        setStatus('Synchro temps réel active.', 'success');
-      }
-    });
+    .subscribe();
 }
 
 function registerServiceWorker() {
