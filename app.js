@@ -4,11 +4,13 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.06';
+const APP_VERSION = '0.07';
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: 4 },
   { name: 'Timéo', initial_score: 4 },
   { name: 'Lilouan', initial_score: 4 },
+  { name: 'Damien', initial_score: 4 },
+  { name: 'Amélie', initial_score: 4 },
 ];
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -22,6 +24,10 @@ const statusElement = document.querySelector('#status');
 const versionBadge = document.querySelector('.app__version');
 const tabButtons = document.querySelectorAll('.tabs__button');
 const panels = document.querySelectorAll('.panel');
+const addPlayerForm = document.querySelector('#add-player-form');
+const addPlayerNameInput = document.querySelector('#add-player-name');
+const addPlayerInitialScoreInput = document.querySelector('#add-player-initial-score');
+const addPlayerSubmit = document.querySelector('#add-player-submit');
 
 if (versionBadge) {
   versionBadge.textContent = APP_VERSION;
@@ -277,6 +283,7 @@ async function loadData({ silent = false } = {}) {
     setupTabs();
     attachAdditionEvents();
     attachHistoryEvents();
+    attachPlayerCreationEvents();
     isInitialLoad = false;
   }
 }
@@ -315,6 +322,83 @@ async function handleDelta(playerId, delta, { commentInput, triggerButton, playe
       triggerButton.disabled = false;
     }
   }
+}
+
+function normalizePlayerName(name) {
+  return name.normalize('NFC').trim();
+}
+
+function isDuplicatePlayer(name) {
+  const normalized = normalizePlayerName(name).toLocaleLowerCase();
+  return state.players.some((player) => player.name.toLocaleLowerCase() === normalized);
+}
+
+async function createPlayer({ name, initialScore }) {
+  if (!game) {
+    throw new Error("La partie n'est pas prête");
+  }
+
+  const { error } = await supabase.from('players').insert({
+    game_id: game.id,
+    name,
+    initial_score: initialScore,
+  });
+
+  if (error) throw error;
+}
+
+function attachPlayerCreationEvents() {
+  if (!addPlayerForm || !addPlayerNameInput || !addPlayerInitialScoreInput || !addPlayerSubmit)
+    return;
+
+  addPlayerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const name = normalizePlayerName(addPlayerNameInput.value);
+    const initialScore = Number.parseInt(addPlayerInitialScoreInput.value, 10);
+
+    if (!name) {
+      setStatus('Renseigne un nom de joueur.', 'error');
+      addPlayerNameInput.focus();
+      return;
+    }
+
+    if (Number.isNaN(initialScore)) {
+      setStatus('Indique un score de départ valide.', 'error');
+      addPlayerInitialScoreInput.focus();
+      return;
+    }
+
+    if (initialScore < 0) {
+      setStatus('Le score de départ doit être positif.', 'error');
+      addPlayerInitialScoreInput.focus();
+      return;
+    }
+
+    if (isDuplicatePlayer(name)) {
+      setStatus('Ce joueur est déjà présent.', 'error');
+      addPlayerNameInput.focus();
+      return;
+    }
+
+    const previousText = addPlayerSubmit.textContent;
+    addPlayerSubmit.disabled = true;
+    addPlayerSubmit.textContent = 'Ajout…';
+
+    try {
+      await createPlayer({ name, initialScore });
+      setStatus(`${name} rejoint la partie !`, 'success');
+      addPlayerForm.reset();
+      addPlayerInitialScoreInput.value = addPlayerInitialScoreInput.defaultValue;
+      await loadData({ silent: true });
+    } catch (error) {
+      console.error(error);
+      setStatus("Impossible d'ajouter ce joueur.", 'error');
+    } finally {
+      addPlayerSubmit.disabled = false;
+      addPlayerSubmit.textContent = previousText;
+    }
+  });
 }
 
 function attachAdditionEvents() {

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111827" />
-    <title>BELGFR – Scores v0.06</title>
+    <title>BELGFR – Scores v0.07</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,7 +17,7 @@
   </head>
   <body>
     <div class="app" id="app-root">
-      <span class="app__version" aria-label="Version 0.06">0.06</span>
+      <span class="app__version" aria-label="Version 0.07">0.07</span>
       <main class="layout" aria-live="polite">
         <div class="tabs" role="tablist" aria-label="Modes de gestion">
           <button
@@ -50,6 +50,42 @@
           aria-labelledby="tab-add"
           data-panel="add"
         >
+          <form id="add-player-form" class="player-form" autocomplete="off">
+            <div class="player-form__fields">
+              <div class="player-form__field">
+                <label class="player-form__label" for="add-player-name">Nom</label>
+                <input
+                  id="add-player-name"
+                  class="player-form__input"
+                  name="name"
+                  type="text"
+                  placeholder="Nom du joueur"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+              <div class="player-form__field player-form__field--compact">
+                <label class="player-form__label" for="add-player-initial-score"
+                  >Score initial</label
+                >
+                <input
+                  id="add-player-initial-score"
+                  class="player-form__input"
+                  name="initial_score"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  max="99"
+                  step="1"
+                  value="4"
+                  required
+                />
+              </div>
+            </div>
+            <button id="add-player-submit" class="player-form__submit" type="submit">
+              Ajouter le joueur
+            </button>
+          </form>
           <div id="add-players" class="panel__players" role="list"></div>
         </section>
         <section
