@@ -4,6 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
+const APP_VERSION = '0.02';
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: 4 },
   { name: 'Timéo', initial_score: 4 },
@@ -19,6 +20,12 @@ const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
 const statusElement = document.querySelector('#status');
 const undoButton = document.querySelector('#undo-button');
+const versionBadge = document.querySelector('.app__version');
+
+if (versionBadge) {
+  versionBadge.textContent = APP_VERSION;
+  versionBadge.setAttribute('aria-label', `Version ${APP_VERSION}`);
+}
 
 let game;
 let channel;
@@ -413,13 +420,38 @@ function registerRealtime(gameId) {
 }
 
 function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((error) => {
+  if (!('serviceWorker' in navigator)) return;
+
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('./sw.js', { updateViaCache: 'none' })
+      .then((registration) => {
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        if (registration.installing) {
+          registration.installing.addEventListener('statechange', (event) => {
+            const worker = event.target;
+            if (worker && worker.state === 'installed' && registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        }
+
+        registration.update();
+      })
+      .catch((error) => {
         console.error('SW registration failed', error);
       });
-    });
-  }
+  });
 }
 
 async function init() {

@@ -1,6 +1,7 @@
-const CACHE_NAME = 'belgfr-scoreboard-v1';
+const CACHE_NAME = 'belgfr-scoreboard-v2';
 const ASSETS = [
   './',
+  './?v=0.02',
   './index.html',
   './styles.css',
   './app.js',
@@ -27,6 +28,12 @@ self.addEventListener('activate', (event) => {
       )
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
