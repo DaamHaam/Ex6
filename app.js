@@ -4,14 +4,66 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.07';
+const APP_VERSION = '0.08';
+const DEFAULT_INITIAL_SCORE = 0;
 const DEFAULT_PLAYERS = [
-  { name: 'Eliott', initial_score: 4 },
-  { name: 'Timéo', initial_score: 4 },
-  { name: 'Lilouan', initial_score: 4 },
-  { name: 'Damien', initial_score: 4 },
-  { name: 'Amélie', initial_score: 4 },
+  { name: 'Eliott', initial_score: DEFAULT_INITIAL_SCORE },
+  { name: 'Timéo', initial_score: DEFAULT_INITIAL_SCORE },
+  { name: 'Lilouan', initial_score: DEFAULT_INITIAL_SCORE },
+  { name: 'Damien', initial_score: DEFAULT_INITIAL_SCORE },
+  { name: 'Amélie', initial_score: DEFAULT_INITIAL_SCORE },
 ];
+const REMOVED_PLAYER_NAMES = ['Son Goku'];
+const COMMENT_ENRICHMENTS = new Map([
+  [
+    'chocolat',
+    'Chocolat — chocolatiers de meilleure qualité, plus renommés en Belgique qu’en France',
+  ],
+  [
+    'frites',
+    'Frites — tradition de la double cuisson et friteries omniprésentes en Belgique, plus qu’en France',
+  ],
+  [
+    'bière',
+    'Bière — brasseries centenaires et styles uniques qui dépassent l’offre française en diversité',
+  ],
+  [
+    'gaufres',
+    'Gaufres — spécialité belge iconique, maîtrisée dans la rue comme en pâtisserie plus qu’en France',
+  ],
+  [
+    'bd',
+    'BD — capitale européenne de la bande dessinée avec des auteurs plus emblématiques qu’en France',
+  ],
+  [
+    'bande dessinée',
+    'BD — capitale européenne de la bande dessinée avec des auteurs plus emblématiques qu’en France',
+  ],
+  [
+    'musique',
+    'Musique — scène pop et électronique belge très innovante, plus mise en avant qu’en France',
+  ],
+  [
+    'cyclisme',
+    'Cyclisme — classiques flandriennes et culture vélo plus enracinée qu’en France',
+  ],
+  [
+    'festivals',
+    'Festivals — programmation dense en Belgique avec des événements plus reconnus qu’en France',
+  ],
+  [
+    'football',
+    'Football — génération dorée belge qui s’exporte davantage que les joueurs formés en France récemment',
+  ],
+  [
+    'design',
+    'Design — écoles et studios belges réputés, plus visibles qu’en France dans ce comparatif',
+  ],
+  [
+    'innovation',
+    'Innovation — start-ups et hubs créatifs belges en forte progression par rapport aux équivalents français',
+  ],
+]);
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },
@@ -20,6 +72,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 const addPlayersContainer = document.querySelector('#add-players');
 const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
+const removePlayersList = document.querySelector('#remove-players');
+const removePlayersEmpty = document.querySelector('#remove-players-empty');
 const statusElement = document.querySelector('#status');
 const versionBadge = document.querySelector('.app__version');
 const tabButtons = document.querySelectorAll('.tabs__button');
@@ -145,13 +199,18 @@ async function fetchOrCreateGame() {
 async function ensurePlayersExist(gameId) {
   const { data, error } = await supabase
     .from('players')
-    .select('id, name')
+    .select('id, name, initial_score')
     .eq('game_id', gameId);
 
   if (error) throw error;
-  if (data.length === DEFAULT_PLAYERS.length) return;
+  const players = Array.isArray(data) ? data : [];
 
-  const existingNames = new Set(data.map((player) => player.name));
+  await purgeRemovedPlayers(players, gameId);
+  await normalizeInitialScores(players);
+
+  if (players.length === DEFAULT_PLAYERS.length) return;
+
+  const existingNames = new Set(players.map((player) => player.name));
   const missing = DEFAULT_PLAYERS.filter(
     (player) => !existingNames.has(player.name)
   ).map((player) => ({ ...player, game_id: gameId }));
@@ -165,6 +224,66 @@ async function ensurePlayersExist(gameId) {
   if (insertError) throw insertError;
 }
 
+async function purgeRemovedPlayers(players, gameId) {
+  if (!Array.isArray(players) || players.length === 0) return;
+  if (!gameId || REMOVED_PLAYER_NAMES.length === 0) return;
+
+  const blockedNames = new Set(
+    REMOVED_PLAYER_NAMES.map((name) => name.normalize('NFC').toLocaleLowerCase())
+  );
+
+  const toRemove = players.filter((player) =>
+    blockedNames.has(player.name.normalize('NFC').toLocaleLowerCase())
+  );
+
+  if (toRemove.length === 0) return;
+
+  const ids = toRemove.map((player) => player.id);
+
+  const { error: pointsError } = await supabase
+    .from('points')
+    .delete()
+    .eq('game_id', gameId)
+    .in('player_id', ids);
+
+  if (pointsError) throw pointsError;
+
+  const { error: playersError } = await supabase
+    .from('players')
+    .delete()
+    .in('id', ids);
+
+  if (playersError) throw playersError;
+
+  toRemove.forEach((player) => {
+    const index = players.findIndex((candidate) => candidate.id === player.id);
+    if (index !== -1) {
+      players.splice(index, 1);
+    }
+  });
+}
+
+async function normalizeInitialScores(players) {
+  if (!Array.isArray(players) || players.length === 0) return;
+
+  const toNormalize = players.filter((player) => player.initial_score !== DEFAULT_INITIAL_SCORE);
+
+  if (toNormalize.length === 0) return;
+
+  const ids = toNormalize.map((player) => player.id);
+
+  const { error } = await supabase
+    .from('players')
+    .update({ initial_score: DEFAULT_INITIAL_SCORE })
+    .in('id', ids);
+
+  if (error) throw error;
+
+  toNormalize.forEach((player) => {
+    player.initial_score = DEFAULT_INITIAL_SCORE;
+  });
+}
+
 function sortPlayers(players) {
   const order = new Map(DEFAULT_PLAYERS.map((player, index) => [player.name, index]));
   return [...players].sort((a, b) => {
@@ -174,20 +293,44 @@ function sortPlayers(players) {
   });
 }
 
-function createAdditionCard(player) {
+function createAdditionCard(player, { rank, isLeader } = {}) {
   const diff = player.score - player.initial_score;
 
   const card = document.createElement('article');
   card.className = 'player-line player-line--add';
   card.dataset.playerId = player.id;
   card.dataset.playerName = player.name;
+  if (typeof rank === 'number') {
+    card.dataset.playerRank = String(rank);
+  }
+  if (isLeader) {
+    card.classList.add('player-line--leader');
+    card.dataset.leader = 'true';
+  } else {
+    card.dataset.leader = 'false';
+  }
 
   const header = document.createElement('div');
   header.className = 'player-line__header';
 
+  const identity = document.createElement('div');
+  identity.className = 'player-line__identity';
+
+  if (typeof rank === 'number') {
+    const rankBadge = document.createElement('span');
+    rankBadge.className = 'player-line__rank';
+    rankBadge.textContent = `#${rank}`;
+    identity.append(rankBadge);
+  }
+
   const nameSpan = document.createElement('span');
   nameSpan.className = 'player-line__name';
   nameSpan.textContent = player.name;
+
+  identity.append(nameSpan);
+
+  const scoreWrapper = document.createElement('div');
+  scoreWrapper.className = 'player-line__score-wrapper';
 
   const scoreSpan = document.createElement('span');
   scoreSpan.className = 'player-line__score';
@@ -199,7 +342,21 @@ function createAdditionCard(player) {
   scoreSpan.dataset.diff = diff;
   scoreSpan.textContent = String(player.score);
 
-  header.append(nameSpan, scoreSpan);
+  const deltaBadge = document.createElement('span');
+  deltaBadge.className = 'player-line__delta';
+  if (diff > 0) {
+    deltaBadge.classList.add('player-line__delta--up');
+    deltaBadge.textContent = `+${diff}`;
+  } else if (diff < 0) {
+    deltaBadge.classList.add('player-line__delta--down');
+    deltaBadge.textContent = String(diff);
+  } else {
+    deltaBadge.textContent = '±0';
+  }
+
+  scoreWrapper.append(scoreSpan, deltaBadge);
+
+  header.append(identity, scoreWrapper);
 
   const controls = document.createElement('div');
   controls.className = 'player-line__controls';
@@ -227,13 +384,92 @@ function createAdditionCard(player) {
   return card;
 }
 
-function renderPlayers(players) {
-  if (addPlayersContainer) {
-    addPlayersContainer.innerHTML = '';
-    players.forEach((player) => {
-      addPlayersContainer.append(createAdditionCard(player));
-    });
+function renderPlayers(players, ranking) {
+  if (!addPlayersContainer) return;
+
+  addPlayersContainer.innerHTML = '';
+  const ranks = ranking?.ranks ?? new Map();
+  const leaders = ranking?.leaders ?? new Set();
+  const topScore = ranking?.topScore ?? DEFAULT_INITIAL_SCORE;
+
+  addPlayersContainer.dataset.topScore = String(topScore);
+
+  players.forEach((player) => {
+    addPlayersContainer.append(
+      createAdditionCard(player, {
+        rank: ranks.get(player.id),
+        isLeader: leaders.has(player.id),
+      })
+    );
+  });
+}
+
+function renderPlayerRemoval(players, ranking) {
+  if (!removePlayersList || !removePlayersEmpty) return;
+
+  removePlayersList.innerHTML = '';
+
+  if (!players || players.length === 0) {
+    removePlayersEmpty.hidden = false;
+    return;
   }
+
+  removePlayersEmpty.hidden = true;
+
+  const ranks = ranking?.ranks ?? new Map();
+  const leaders = ranking?.leaders ?? new Set();
+
+  const ordered = [...players].sort((a, b) => {
+    const rankA = ranks.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+    const rankB = ranks.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+    if (rankA !== rankB) return rankA - rankB;
+    return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+  });
+
+  ordered.forEach((player) => {
+    const item = document.createElement('li');
+    item.className = 'remove-player';
+    item.dataset.playerId = player.id;
+    item.dataset.playerName = player.name;
+    if (leaders.has(player.id)) {
+      item.classList.add('remove-player--leader');
+    }
+
+    const content = document.createElement('div');
+    content.className = 'remove-player__content';
+
+    const identity = document.createElement('div');
+    identity.className = 'remove-player__identity';
+
+    const rankValue = ranks.get(player.id);
+    if (typeof rankValue === 'number') {
+      const rankBadge = document.createElement('span');
+      rankBadge.className = 'remove-player__rank';
+      rankBadge.textContent = `#${rankValue}`;
+      identity.append(rankBadge);
+    }
+
+    const name = document.createElement('span');
+    name.className = 'remove-player__name';
+    name.textContent = player.name;
+    identity.append(name);
+
+    const stats = document.createElement('span');
+    stats.className = 'remove-player__score';
+    stats.textContent = `${player.score} pt${Math.abs(player.score) > 1 ? 's' : ''}`;
+
+    content.append(identity, stats);
+
+    const action = document.createElement('button');
+    action.className = 'remove-player__action';
+    action.type = 'button';
+    action.dataset.removePlayer = 'true';
+    action.textContent = 'Retirer';
+    action.setAttribute('aria-label', `Retirer ${player.name} de la partie`);
+
+    item.append(content, action);
+    removePlayersList.append(item);
+  });
 }
 
 function renderHistory(history, players) {
@@ -279,12 +515,69 @@ function renderHistory(history, players) {
       if (entry.comment) {
         const comment = document.createElement('p');
         comment.className = 'history__comment';
-        comment.textContent = entry.comment;
+        comment.textContent = enrichComment(entry.comment);
         li.append(comment);
       }
 
       historyList.append(li);
     });
+}
+
+function computeRanking(players) {
+  if (!Array.isArray(players) || players.length === 0) {
+    return {
+      ranks: new Map(),
+      leaders: new Set(),
+      topScore: DEFAULT_INITIAL_SCORE,
+    };
+  }
+
+  const order = new Map(DEFAULT_PLAYERS.map((player, index) => [player.name, index]));
+
+  const sorted = [...players].sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    const orderA = order.get(a.name) ?? Number.MAX_SAFE_INTEGER;
+    const orderB = order.get(b.name) ?? Number.MAX_SAFE_INTEGER;
+    return orderA - orderB;
+  });
+
+  const ranks = new Map();
+  sorted.forEach((player, index) => {
+    if (index === 0) {
+      ranks.set(player.id, 1);
+      return;
+    }
+    const previous = sorted[index - 1];
+    const sameScore = previous.score === player.score;
+    const rank = sameScore ? ranks.get(previous.id) : index + 1;
+    ranks.set(player.id, rank ?? index + 1);
+  });
+
+  const topScore = sorted[0]?.score ?? DEFAULT_INITIAL_SCORE;
+  const leaders = new Set(
+    sorted.filter((player) => player.score === topScore).map((player) => player.id)
+  );
+
+  return { ranks, leaders, topScore };
+}
+
+function enrichComment(comment) {
+  if (!comment) return '';
+
+  const normalized = comment.normalize('NFC').trim();
+  if (!normalized) return '';
+  if (normalized.includes('—')) return normalized;
+
+  const lookupKey = normalized.toLocaleLowerCase();
+  const enriched = COMMENT_ENRICHMENTS.get(lookupKey);
+  if (enriched) {
+    return enriched;
+  }
+
+  const capitalized = normalized.charAt(0).toLocaleUpperCase() + normalized.slice(1);
+  return `${capitalized} — spécificité belge perçue comme plus marquée qu’en France`;
 }
 
 async function loadData({ silent = false } = {}) {
@@ -324,7 +617,10 @@ async function loadData({ silent = false } = {}) {
   }));
   state.history = historyData;
 
-  renderPlayers(state.players);
+  const ranking = computeRanking(state.players);
+
+  renderPlayers(state.players, ranking);
+  renderPlayerRemoval(state.players, ranking);
   renderHistory(state.history, state.players);
 
   if (!silent) {
@@ -337,6 +633,7 @@ async function loadData({ silent = false } = {}) {
     attachHistoryEvents();
     attachPlayerFormToggle();
     attachPlayerCreationEvents();
+    attachPlayerRemovalEvents();
     isInitialLoad = false;
   }
 }
@@ -560,6 +857,72 @@ async function deleteHistoryEntry(entryId) {
     setStatus('Impossible de supprimer cette entrée.', 'error');
     if (deleteButton) {
       deleteButton.disabled = false;
+    }
+  }
+}
+
+function attachPlayerRemovalEvents() {
+  if (!removePlayersList) return;
+
+  removePlayersList.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const button = target.closest('[data-remove-player]');
+    if (!button || button.disabled) return;
+    const item = button.closest('[data-player-id]');
+    const playerId = item?.dataset.playerId;
+    if (!playerId) return;
+    const playerName = item?.dataset.playerName ?? 'joueur';
+    deletePlayer(playerId, { triggerButton: button, playerName });
+  });
+
+  removePlayersList.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.hasAttribute('data-remove-player') || target.disabled) return;
+    event.preventDefault();
+    const item = target.closest('[data-player-id]');
+    const playerId = item?.dataset.playerId;
+    if (!playerId) return;
+    const playerName = item?.dataset.playerName ?? 'joueur';
+    deletePlayer(playerId, { triggerButton: target, playerName });
+  });
+}
+
+async function deletePlayer(playerId, { triggerButton, playerName } = {}) {
+  if (!playerId || !game) return;
+
+  let previousText;
+  if (triggerButton) {
+    previousText = triggerButton.textContent;
+    triggerButton.disabled = true;
+    triggerButton.textContent = 'Retrait…';
+  }
+
+  const name = playerName ?? 'joueur';
+
+  try {
+    const { error: pointsError } = await supabase
+      .from('points')
+      .delete()
+      .eq('game_id', game.id)
+      .eq('player_id', playerId);
+
+    if (pointsError) throw pointsError;
+
+    const { error: playerError } = await supabase.from('players').delete().eq('id', playerId);
+
+    if (playerError) throw playerError;
+
+    setStatus(`${name} retiré·e de la partie.`, 'success');
+    await loadData({ silent: true });
+  } catch (error) {
+    console.error(error);
+    setStatus("Impossible de retirer ce joueur.", 'error');
+    if (triggerButton) {
+      triggerButton.disabled = false;
+      triggerButton.textContent = previousText ?? 'Retirer';
     }
   }
 }
