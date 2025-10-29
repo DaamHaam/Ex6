@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111827" />
-    <title>BELGFR – Scores v0.07</title>
+    <title>BELGFR – Scores v0.08</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,7 +17,7 @@
   </head>
   <body>
     <div class="app" id="app-root">
-      <span class="app__version" aria-label="Version 0.07">0.07</span>
+      <span class="app__version" aria-label="Version 0.08">0.08</span>
       <main class="layout" aria-live="polite">
         <div class="tabs" role="tablist" aria-label="Modes de gestion">
           <button
@@ -136,7 +136,7 @@
                       min="0"
                       max="99"
                       step="1"
-                      value="4"
+                      value="0"
                       required
                     />
                   </div>
@@ -157,9 +157,21 @@
           data-panel="remove"
           hidden
         >
-          <div class="history" aria-label="Historique">
-            <ol id="history" class="history__list" aria-live="polite"></ol>
-            <p id="history-empty" class="history__empty" hidden>Aucune action</p>
+          <div class="panel__columns">
+            <div class="panel__column">
+              <h2 class="panel__subtitle">Retirer un joueur</h2>
+              <ul id="remove-players" class="remove-players" role="list"></ul>
+              <p id="remove-players-empty" class="remove-players__empty" hidden>
+                Aucun joueur à retirer
+              </p>
+            </div>
+            <div class="panel__column">
+              <h2 class="panel__subtitle">Historique des points</h2>
+              <div class="history" aria-label="Historique">
+                <ol id="history" class="history__list" aria-live="polite"></ol>
+                <p id="history-empty" class="history__empty" hidden>Aucune action</p>
+              </div>
+            </div>
           </div>
         </section>
         <p id="status" class="status" role="status" aria-live="polite"></p>
