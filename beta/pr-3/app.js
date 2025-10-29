@@ -14,6 +14,34 @@ const DEFAULT_PLAYERS = [
   { name: 'Amélie', initial_score: DEFAULT_INITIAL_SCORE },
 ];
 const REMOVED_PLAYER_NAMES = ['Son Goku'];
+
+const COMMENT_DETAILS = [
+  {
+    keywords: ['petit bac', 'certificat etudes de base', 'ceb'],
+    detail:
+      "En Fédération Wallonie-Bruxelles, la sixième primaire se conclut par le certificat d'études de base (CEB), un examen organisé par l'État qui conditionne l'accès au secondaire et reste reconnu comme attestation de niveau général par des employeurs pour les premiers jobs.",
+  },
+  {
+    keywords: ['noms des classes', 'noms de classes', '1er secondaire', '1re secondaire'],
+    detail:
+      "Le système scolaire belge numérote ses années (1re primaire, 2e primaire… puis 1re à 6e secondaire), alors qu'en France on parle de sixième, cinquième, quatrième, etc., ce qui change complètement les repères d'une filière à l'autre.",
+  },
+  {
+    keywords: ['friteries', 'frites', 'baraque a frites'],
+    detail:
+      'La frite est un emblème culinaire national : les friteries – ces baraques à frites omniprésentes – revendiquent l’origine belge de la spécialité et certaines régions ont fait inscrire la culture de la frite à leur patrimoine immatériel.',
+  },
+  {
+    keywords: ['un seul bisou', 'une seule bise', 'une bise'],
+    detail:
+      'En Belgique francophone, on se salue le plus souvent avec une seule bise sur la joue, une habitude plus rapide et directe que les deux bises généralement échangées en France métropolitaine.',
+  },
+  {
+    keywords: ['sacs plastiques', 'sac plastique'],
+    detail:
+      "La France a interdit dès 2016 les sacs plastiques à usage unique en caisse, alors qu'en Belgique la transition s'est faite plus lentement et certains commerces ont continué à proposer des sacs payants plus épais, ce qui rend cette différence visible au quotidien.",
+  },
+];
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },
 });
@@ -49,6 +77,27 @@ const state = {
   players: [],
   history: [],
 };
+
+function normalizeComment(text) {
+  if (!text) return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function getCommentDetail(comment) {
+  const normalized = normalizeComment(comment?.trim());
+  if (!normalized) return null;
+
+  for (const entry of COMMENT_DETAILS) {
+    if (entry.keywords.some((keyword) => normalized.includes(keyword))) {
+      return entry.detail;
+    }
+  }
+
+  return null;
+}
 
 function setStatus(message = '', tone = 'info') {
   if (!statusElement) return;
@@ -453,6 +502,23 @@ function renderHistory(history, players) {
         comment.className = 'history__comment';
         comment.textContent = trimmedComment;
         li.append(comment);
+
+        const detail = getCommentDetail(trimmedComment);
+        if (detail) {
+          const detailBox = document.createElement('details');
+          detailBox.className = 'history__details';
+
+          const detailSummary = document.createElement('summary');
+          detailSummary.className = 'history__details-summary';
+          detailSummary.textContent = 'Détails';
+
+          const detailText = document.createElement('p');
+          detailText.className = 'history__details-text';
+          detailText.textContent = detail;
+
+          detailBox.append(detailSummary, detailText);
+          li.append(detailBox);
+        }
       }
 
       historyList.append(li);
