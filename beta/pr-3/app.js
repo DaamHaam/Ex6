@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.10';
+const APP_VERSION = '0.11';
 const DEFAULT_INITIAL_SCORE = 0;
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: DEFAULT_INITIAL_SCORE },
@@ -12,8 +12,10 @@ const DEFAULT_PLAYERS = [
   { name: 'Lilouan', initial_score: DEFAULT_INITIAL_SCORE },
   { name: 'Damien', initial_score: DEFAULT_INITIAL_SCORE },
   { name: 'Amélie', initial_score: DEFAULT_INITIAL_SCORE },
+  { name: 'Son Goku', initial_score: DEFAULT_INITIAL_SCORE },
 ];
-const REMOVED_PLAYER_NAMES = ['Son Goku'];
+const REMOVED_PLAYER_NAMES = [];
+const DEFAULT_HISTORY_ORDER = 'desc';
 
 const COMMENT_DETAILS = [
   {
@@ -51,7 +53,7 @@ const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
 const historyFiltersForm = document.querySelector('#history-filters');
 const historyPlayerFilter = document.querySelector('#history-filter-player');
-const historyDateFilter = document.querySelector('#history-filter-date');
+const historyOrderFilter = document.querySelector('#history-filter-order');
 const historyResetFilter = document.querySelector('#history-filter-reset');
 const historyEmptyDefaultText = historyEmpty?.textContent ?? '';
 const removePlayersList = document.querySelector('#remove-players');
@@ -85,7 +87,7 @@ const state = {
 
 const historyFilters = {
   playerId: 'all',
-  date: '',
+  order: DEFAULT_HISTORY_ORDER,
 };
 
 function normalizeComment(text) {
@@ -109,15 +111,10 @@ function getCommentDetail(comment) {
   return null;
 }
 
-function formatDateKey(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
-}
-
 function hasActiveHistoryFilters() {
-  return historyFilters.playerId !== 'all' || historyFilters.date !== '';
+  return (
+    historyFilters.playerId !== 'all' || historyFilters.order !== DEFAULT_HISTORY_ORDER
+  );
 }
 
 function filterHistoryEntries(entries) {
@@ -129,13 +126,26 @@ function filterHistoryEntries(entries) {
     const matchesPlayer =
       historyFilters.playerId === 'all' ||
       String(entry.player_id) === historyFilters.playerId;
-
-    if (!matchesPlayer) return false;
-
-    if (!historyFilters.date) return true;
-
-    return formatDateKey(entry.created_at) === historyFilters.date;
+    return matchesPlayer;
   });
+}
+
+function sortHistoryEntries(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return [];
+  }
+
+  const sorted = entries.slice().sort((a, b) => {
+    const dateA = new Date(a.created_at);
+    const dateB = new Date(b.created_at);
+    return dateA - dateB;
+  });
+
+  if (historyFilters.order === 'desc') {
+    sorted.reverse();
+  }
+
+  return sorted;
 }
 
 function populateHistoryPlayerFilter(players) {
@@ -546,7 +556,7 @@ function renderHistory(history, players) {
 
   historyList.innerHTML = '';
 
-  const filteredHistory = filterHistoryEntries(history);
+  const filteredHistory = sortHistoryEntries(filterHistoryEntries(history));
   syncHistoryResetState();
 
   if (filteredHistory.length === 0) {
@@ -562,10 +572,7 @@ function renderHistory(history, players) {
 
   const playerNames = new Map(players.map((player) => [player.id, player.name]));
 
-  filteredHistory
-    .slice()
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .forEach((entry) => {
+  filteredHistory.forEach((entry) => {
       const li = document.createElement('li');
       li.className = 'history__item';
       li.dataset.entryId = entry.id;
@@ -697,8 +704,8 @@ async function loadData({ silent = false } = {}) {
   const ranking = computeRanking(state.players);
 
   populateHistoryPlayerFilter(state.players);
-  if (historyDateFilter) {
-    historyDateFilter.value = historyFilters.date;
+  if (historyOrderFilter) {
+    historyOrderFilter.value = historyFilters.order;
   }
   renderPlayers(state.players, ranking);
   renderPlayerRemoval(state.players, ranking);
@@ -769,11 +776,15 @@ async function createPlayer({ name, initialScore }) {
     throw new Error("La partie n'est pas prête");
   }
 
-  const { error } = await supabase.from('players').insert({
-    game_id: game.id,
-    name,
-    initial_score: initialScore,
-  });
+  const { error } = await supabase
+    .from('players')
+    .insert({
+      game_id: game.id,
+      name,
+      initial_score: initialScore,
+    })
+    .select()
+    .single();
 
   if (error) throw error;
 }
@@ -931,11 +942,11 @@ function attachHistoryEvents() {
     });
   }
 
-  if (historyDateFilter) {
-    historyDateFilter.addEventListener('change', (event) => {
+  if (historyOrderFilter) {
+    historyOrderFilter.addEventListener('change', (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLInputElement)) return;
-      historyFilters.date = target.value ?? '';
+      if (!(target instanceof HTMLSelectElement)) return;
+      historyFilters.order = target.value === 'asc' ? 'asc' : DEFAULT_HISTORY_ORDER;
       renderHistory(state.history, state.players);
     });
   }
@@ -943,12 +954,12 @@ function attachHistoryEvents() {
   if (historyResetFilter) {
     historyResetFilter.addEventListener('click', () => {
       historyFilters.playerId = 'all';
-      historyFilters.date = '';
+      historyFilters.order = DEFAULT_HISTORY_ORDER;
       if (historyPlayerFilter) {
         historyPlayerFilter.value = 'all';
       }
-      if (historyDateFilter) {
-        historyDateFilter.value = '';
+      if (historyOrderFilter) {
+        historyOrderFilter.value = DEFAULT_HISTORY_ORDER;
       }
       renderHistory(state.history, state.players);
     });
