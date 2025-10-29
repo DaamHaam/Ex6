@@ -505,18 +505,18 @@ function renderHistory(history, players) {
 
         const detail = getCommentDetail(trimmedComment);
         if (detail) {
-          const detailBox = document.createElement('div');
+          const detailBox = document.createElement('details');
           detailBox.className = 'history__details';
 
-          const detailTitle = document.createElement('p');
-          detailTitle.className = 'history__details-title';
-          detailTitle.textContent = 'Détails';
+          const detailSummary = document.createElement('summary');
+          detailSummary.className = 'history__details-summary';
+          detailSummary.textContent = 'Détails';
 
           const detailText = document.createElement('p');
           detailText.className = 'history__details-text';
           detailText.textContent = detail;
 
-          detailBox.append(detailTitle, detailText);
+          detailBox.append(detailSummary, detailText);
           li.append(detailBox);
         }
       }
