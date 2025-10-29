@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111827" />
-    <title>BELGFR – Scores v0.09</title>
+    <title>BELGFR – Scores v0.10</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,7 +18,7 @@
   <body>
     <div class="app" id="app-root">
       <header class="topbar" role="banner">
-        <span class="app__version" aria-label="Version 0.09">0.09</span>
+        <span class="app__version" aria-label="Version 0.10">0.10</span>
         <div class="topbar__tabs">
           <div class="tabs" role="tablist" aria-label="Modes de gestion">
             <button
@@ -30,7 +30,7 @@
               aria-selected="true"
               aria-controls="panel-add"
             >
-              Ajouter
+              Classement
             </button>
             <button
               id="tab-remove"
@@ -41,7 +41,7 @@
               aria-selected="false"
               aria-controls="panel-remove"
             >
-              Retirer
+              Historique
             </button>
           </div>
         </div>
@@ -156,6 +156,34 @@
           <div class="remove-layout">
             <section class="remove-layout__history" aria-labelledby="remove-history-title">
               <h2 id="remove-history-title" class="panel__subtitle">Historique des points</h2>
+              <form id="history-filters" class="history-filters" autocomplete="off">
+                <div class="history-filters__field">
+                  <label class="history-filters__label" for="history-filter-player">Joueur</label>
+                  <select
+                    id="history-filter-player"
+                    class="history-filters__control"
+                    name="player"
+                    aria-label="Filtrer l'historique par joueur"
+                  >
+                    <option value="all">Tous les joueurs</option>
+                  </select>
+                </div>
+                <div class="history-filters__field">
+                  <label class="history-filters__label" for="history-filter-date">Date</label>
+                  <input
+                    id="history-filter-date"
+                    class="history-filters__control"
+                    type="date"
+                    name="date"
+                    aria-label="Filtrer l'historique par date"
+                  />
+                </div>
+                <div class="history-filters__actions">
+                  <button id="history-filter-reset" class="history-filters__reset" type="button">
+                    Réinitialiser
+                  </button>
+                </div>
+              </form>
               <div class="history" aria-label="Historique">
                 <ol id="history" class="history__list" aria-live="polite"></ol>
                 <p id="history-empty" class="history__empty" hidden>Aucune action</p>

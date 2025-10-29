@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.09';
+const APP_VERSION = '0.10';
 const DEFAULT_INITIAL_SCORE = 0;
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: DEFAULT_INITIAL_SCORE },
@@ -49,6 +49,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 const addPlayersContainer = document.querySelector('#add-players');
 const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
+const historyFiltersForm = document.querySelector('#history-filters');
+const historyPlayerFilter = document.querySelector('#history-filter-player');
+const historyDateFilter = document.querySelector('#history-filter-date');
+const historyResetFilter = document.querySelector('#history-filter-reset');
+const historyEmptyDefaultText = historyEmpty?.textContent ?? '';
 const removePlayersList = document.querySelector('#remove-players');
 const removePlayersEmpty = document.querySelector('#remove-players-empty');
 const statusElement = document.querySelector('#status');
@@ -78,6 +83,11 @@ const state = {
   history: [],
 };
 
+const historyFilters = {
+  playerId: 'all',
+  date: '',
+};
+
 function normalizeComment(text) {
   if (!text) return '';
   return text
@@ -97,6 +107,73 @@ function getCommentDetail(comment) {
   }
 
   return null;
+}
+
+function formatDateKey(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+}
+
+function hasActiveHistoryFilters() {
+  return historyFilters.playerId !== 'all' || historyFilters.date !== '';
+}
+
+function filterHistoryEntries(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return [];
+  }
+
+  return entries.filter((entry) => {
+    const matchesPlayer =
+      historyFilters.playerId === 'all' ||
+      String(entry.player_id) === historyFilters.playerId;
+
+    if (!matchesPlayer) return false;
+
+    if (!historyFilters.date) return true;
+
+    return formatDateKey(entry.created_at) === historyFilters.date;
+  });
+}
+
+function populateHistoryPlayerFilter(players) {
+  if (!historyPlayerFilter) return;
+
+  const previousSelection = historyFilters.playerId;
+  historyPlayerFilter.innerHTML = '';
+
+  const fragment = document.createDocumentFragment();
+  const defaultOption = document.createElement('option');
+  defaultOption.value = 'all';
+  defaultOption.textContent = 'Tous les joueurs';
+  fragment.append(defaultOption);
+
+  const sortedPlayers = [...players].sort((a, b) =>
+    a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+  );
+
+  sortedPlayers.forEach((player) => {
+    const option = document.createElement('option');
+    option.value = String(player.id);
+    option.textContent = player.name;
+    fragment.append(option);
+  });
+
+  historyPlayerFilter.append(fragment);
+
+  const hasPrevious =
+    previousSelection !== 'all' &&
+    sortedPlayers.some((player) => String(player.id) === previousSelection);
+
+  historyFilters.playerId = hasPrevious ? previousSelection : 'all';
+  historyPlayerFilter.value = historyFilters.playerId;
+}
+
+function syncHistoryResetState() {
+  if (!historyResetFilter) return;
+  historyResetFilter.disabled = !hasActiveHistoryFilters();
 }
 
 function setStatus(message = '', tone = 'info') {
@@ -378,7 +455,15 @@ function renderPlayers(players, ranking) {
 
   addPlayersContainer.dataset.topScore = String(topScore);
 
-  players.forEach((player) => {
+  const ordered = [...players].sort((a, b) => {
+    const rankA = ranks.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+    const rankB = ranks.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+    if (rankA !== rankB) return rankA - rankB;
+    if (b.score !== a.score) return b.score - a.score;
+    return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+  });
+
+  ordered.forEach((player) => {
     addPlayersContainer.append(
       createAdditionCard(player, {
         rank: ranks.get(player.id),
@@ -461,16 +546,23 @@ function renderHistory(history, players) {
 
   historyList.innerHTML = '';
 
-  if (history.length === 0) {
+  const filteredHistory = filterHistoryEntries(history);
+  syncHistoryResetState();
+
+  if (filteredHistory.length === 0) {
     historyEmpty.hidden = false;
+    historyEmpty.textContent = hasActiveHistoryFilters()
+      ? 'Aucune action pour ces filtres'
+      : historyEmptyDefaultText;
     return;
   }
 
   historyEmpty.hidden = true;
+  historyEmpty.textContent = historyEmptyDefaultText;
 
   const playerNames = new Map(players.map((player) => [player.id, player.name]));
 
-  history
+  filteredHistory
     .slice()
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .forEach((entry) => {
@@ -604,6 +696,10 @@ async function loadData({ silent = false } = {}) {
 
   const ranking = computeRanking(state.players);
 
+  populateHistoryPlayerFilter(state.players);
+  if (historyDateFilter) {
+    historyDateFilter.value = historyFilters.date;
+  }
   renderPlayers(state.players, ranking);
   renderPlayerRemoval(state.players, ranking);
   renderHistory(state.history, state.players);
@@ -819,6 +915,44 @@ function attachHistoryEvents() {
     if (!entryId) return;
     deleteHistoryEntry(entryId);
   });
+
+  if (historyFiltersForm) {
+    historyFiltersForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+    });
+  }
+
+  if (historyPlayerFilter) {
+    historyPlayerFilter.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      historyFilters.playerId = target.value || 'all';
+      renderHistory(state.history, state.players);
+    });
+  }
+
+  if (historyDateFilter) {
+    historyDateFilter.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      historyFilters.date = target.value ?? '';
+      renderHistory(state.history, state.players);
+    });
+  }
+
+  if (historyResetFilter) {
+    historyResetFilter.addEventListener('click', () => {
+      historyFilters.playerId = 'all';
+      historyFilters.date = '';
+      if (historyPlayerFilter) {
+        historyPlayerFilter.value = 'all';
+      }
+      if (historyDateFilter) {
+        historyDateFilter.value = '';
+      }
+      renderHistory(state.history, state.players);
+    });
+  }
 }
 
 async function deleteHistoryEntry(entryId) {
