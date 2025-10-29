@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.08';
+const APP_VERSION = '0.09';
 const DEFAULT_INITIAL_SCORE = 0;
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: DEFAULT_INITIAL_SCORE },
@@ -14,57 +14,6 @@ const DEFAULT_PLAYERS = [
   { name: 'Amélie', initial_score: DEFAULT_INITIAL_SCORE },
 ];
 const REMOVED_PLAYER_NAMES = ['Son Goku'];
-const COMMENT_ENRICHMENTS = new Map([
-  [
-    'chocolat',
-    'Chocolat — chocolatiers de meilleure qualité, plus renommés en Belgique qu’en France',
-  ],
-  [
-    'frites',
-    'Frites — tradition de la double cuisson et friteries omniprésentes en Belgique, plus qu’en France',
-  ],
-  [
-    'bière',
-    'Bière — brasseries centenaires et styles uniques qui dépassent l’offre française en diversité',
-  ],
-  [
-    'gaufres',
-    'Gaufres — spécialité belge iconique, maîtrisée dans la rue comme en pâtisserie plus qu’en France',
-  ],
-  [
-    'bd',
-    'BD — capitale européenne de la bande dessinée avec des auteurs plus emblématiques qu’en France',
-  ],
-  [
-    'bande dessinée',
-    'BD — capitale européenne de la bande dessinée avec des auteurs plus emblématiques qu’en France',
-  ],
-  [
-    'musique',
-    'Musique — scène pop et électronique belge très innovante, plus mise en avant qu’en France',
-  ],
-  [
-    'cyclisme',
-    'Cyclisme — classiques flandriennes et culture vélo plus enracinée qu’en France',
-  ],
-  [
-    'festivals',
-    'Festivals — programmation dense en Belgique avec des événements plus reconnus qu’en France',
-  ],
-  [
-    'football',
-    'Football — génération dorée belge qui s’exporte davantage que les joueurs formés en France récemment',
-  ],
-  [
-    'design',
-    'Design — écoles et studios belges réputés, plus visibles qu’en France dans ce comparatif',
-  ],
-  [
-    'innovation',
-    'Innovation — start-ups et hubs créatifs belges en forte progression par rapport aux équivalents français',
-  ],
-]);
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },
 });
@@ -339,22 +288,8 @@ function createAdditionCard(player, { rank, isLeader } = {}) {
   } else if (diff < 0) {
     scoreSpan.classList.add('player-line__score--down');
   }
-  scoreSpan.dataset.diff = diff;
   scoreSpan.textContent = String(player.score);
-
-  const deltaBadge = document.createElement('span');
-  deltaBadge.className = 'player-line__delta';
-  if (diff > 0) {
-    deltaBadge.classList.add('player-line__delta--up');
-    deltaBadge.textContent = `+${diff}`;
-  } else if (diff < 0) {
-    deltaBadge.classList.add('player-line__delta--down');
-    deltaBadge.textContent = String(diff);
-  } else {
-    deltaBadge.textContent = '±0';
-  }
-
-  scoreWrapper.append(scoreSpan, deltaBadge);
+  scoreWrapper.append(scoreSpan);
 
   header.append(identity, scoreWrapper);
 
@@ -512,10 +447,11 @@ function renderHistory(history, players) {
       row.append(playerSpan, deleteButton);
       li.append(row);
 
-      if (entry.comment) {
+      const trimmedComment = entry.comment?.trim();
+      if (trimmedComment) {
         const comment = document.createElement('p');
         comment.className = 'history__comment';
-        comment.textContent = enrichComment(entry.comment);
+        comment.textContent = trimmedComment;
         li.append(comment);
       }
 
@@ -561,23 +497,6 @@ function computeRanking(players) {
   );
 
   return { ranks, leaders, topScore };
-}
-
-function enrichComment(comment) {
-  if (!comment) return '';
-
-  const normalized = comment.normalize('NFC').trim();
-  if (!normalized) return '';
-  if (normalized.includes('—')) return normalized;
-
-  const lookupKey = normalized.toLocaleLowerCase();
-  const enriched = COMMENT_ENRICHMENTS.get(lookupKey);
-  if (enriched) {
-    return enriched;
-  }
-
-  const capitalized = normalized.charAt(0).toLocaleUpperCase() + normalized.slice(1);
-  return `${capitalized} — spécificité belge perçue comme plus marquée qu’en France`;
 }
 
 async function loadData({ silent = false } = {}) {
