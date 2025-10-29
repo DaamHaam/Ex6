@@ -1,11 +1,11 @@
 {
-  "name": "BELGFR – Scores v0.10",
-  "short_name": "BELGFR 0.10",
-  "start_url": "./?v=0.10",
+  "name": "BELGFR – Scores v0.11",
+  "short_name": "BELGFR 0.11",
+  "start_url": "./?v=0.11",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1f2937",
-  "description": "Scores en direct pour Eliott, Timéo, Lilouan, Damien et Amélie.",
+  "description": "Scores en direct pour Eliott, Timéo, Lilouan, Damien, Amélie et Son Goku.",
   "lang": "fr",
   "icons": [
     {
