@@ -10,10 +10,10 @@
 4. Incrémenter `CACHE_NAME` dans `sw.js` et remplacer l'entrée correspondante du tableau `ASSETS` par la nouvelle URL versionnée (`./?v=xx`). Cela force le téléchargement des ressources actualisées.
 5. Après déploiement, recharger la page : le service worker détectera la nouvelle version et rafraîchira automatiquement l'application.
 
-### Exemple : passer de 0.05 à 0.06
-- `app.js` : remplacer `APP_VERSION = '0.05'` par `APP_VERSION = '0.06'`.
-- `index.html` : mettre à jour le `<title>` et l'attribut `aria-label` du badge de version pour afficher `0.06`.
-- `manifest.webmanifest` : modifier `name`, `short_name` et `start_url` pour qu'ils terminent par `0.06`.
-- `sw.js` : incrémenter `CACHE_NAME` (ex. `belgfr-scoreboard-v6`) et ajuster l'entrée `./?v=0.06`.
+-### Exemple : passer de 0.12 à 0.13
+- `app.js` : remplacer `APP_VERSION = '0.12'` par `APP_VERSION = '0.13'`.
+- `index.html` : mettre à jour le `<title>` et l'attribut `aria-label` du badge de version pour afficher `0.13`.
+- `manifest.webmanifest` : modifier `name`, `short_name`, `start_url` et la description pour qu'ils mentionnent `0.13` et les joueurs par défaut à jour.
+- `sw.js` : incrémenter `CACHE_NAME` (ex. `belgfr-scoreboard-v13`) et ajuster l'entrée `./?v=0.13`.
 - `readme.md` : actualiser cet exemple pour conserver une trace de la dernière montée de version.
 - Vérifier qu'aucune ressource en cache ne mentionne l'ancienne version avant de redéployer.
