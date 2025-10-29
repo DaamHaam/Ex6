@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.12';
+const APP_VERSION = '0.13';
 const DEFAULT_INITIAL_SCORE = 0;
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: DEFAULT_INITIAL_SCORE },
@@ -82,12 +82,18 @@ let game;
 let channel;
 let isInitialLoad = true;
 let isPlayerFormOpen = false;
-let areHistoryFiltersVisible = historyFiltersForm
-  ? !historyFiltersForm.hasAttribute('hidden')
-  : false;
-let isRemovePanelVisible = removePlayersPanel
-  ? !removePlayersPanel.hasAttribute('hidden')
-  : false;
+let areHistoryFiltersVisible = false;
+let isRemovePanelVisible = false;
+
+if (historyFiltersForm) {
+  historyFiltersForm.hidden = true;
+  historyFiltersForm.setAttribute('hidden', '');
+}
+
+if (removePlayersPanel) {
+  removePlayersPanel.hidden = true;
+  removePlayersPanel.setAttribute('hidden', '');
+}
 
 const state = {
   players: [],
@@ -129,7 +135,13 @@ function hasActiveHistoryFilters() {
 function setHistoryFiltersVisibility(isVisible) {
   if (!historyFiltersForm || !historyFiltersToggle) return;
   areHistoryFiltersVisible = isVisible;
-  historyFiltersForm.hidden = !isVisible;
+  if (isVisible) {
+    historyFiltersForm.hidden = false;
+    historyFiltersForm.removeAttribute('hidden');
+  } else {
+    historyFiltersForm.hidden = true;
+    historyFiltersForm.setAttribute('hidden', '');
+  }
   historyFiltersToggle.setAttribute('aria-expanded', String(isVisible));
   historyFiltersToggle.classList.toggle('history-filters__toggle--open', isVisible);
 }
@@ -137,7 +149,13 @@ function setHistoryFiltersVisibility(isVisible) {
 function setRemovePlayersVisibility(isVisible) {
   if (!removePlayersPanel || !removePlayersToggle) return;
   isRemovePanelVisible = isVisible;
-  removePlayersPanel.hidden = !isVisible;
+  if (isVisible) {
+    removePlayersPanel.hidden = false;
+    removePlayersPanel.removeAttribute('hidden');
+  } else {
+    removePlayersPanel.hidden = true;
+    removePlayersPanel.setAttribute('hidden', '');
+  }
   removePlayersToggle.setAttribute('aria-expanded', String(isVisible));
   removePlayersToggle.classList.toggle('remove-players__toggle--open', isVisible);
 }
