@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111827" />
-    <title>BELGFR – Scores v0.11</title>
+    <title>BELGFR – Scores v0.12</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/scoreboard-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,7 +18,7 @@
   <body>
     <div class="app" id="app-root">
       <header class="topbar" role="banner">
-        <span class="app__version" aria-label="Version 0.11">0.11</span>
+        <span class="app__version" aria-label="Version 0.12">0.12</span>
         <div class="topbar__tabs">
           <div class="tabs" role="tablist" aria-label="Modes de gestion">
             <button
@@ -155,8 +155,31 @@
         >
           <div class="remove-layout">
             <section class="remove-layout__history" aria-labelledby="remove-history-title">
-              <h2 id="remove-history-title" class="panel__subtitle">Historique des points</h2>
-              <form id="history-filters" class="history-filters" autocomplete="off">
+              <div class="panel__section-header">
+                <h2 id="remove-history-title" class="panel__subtitle">Historique des points</h2>
+                <button
+                  id="history-filters-toggle"
+                  class="history-filters__toggle"
+                  type="button"
+                  aria-controls="history-filters"
+                  aria-expanded="false"
+                >
+                  <svg
+                    class="history-filters__toggle-icon"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M4.75 5.5a1.25 1.25 0 0 1 1.25-1.25h12a1.25 1.25 0 0 1 .95 2.05l-4.95 5.83v4.37a1.25 1.25 0 0 1-.74 1.14l-3.5 1.5A1.25 1.25 0 0 1 8 17.95V12.1L4.3 6.3A1.25 1.25 0 0 1 4.75 5.5Z"
+                    />
+                  </svg>
+                  <span class="history-filters__toggle-label">Filtrer</span>
+                </button>
+              </div>
+              <form id="history-filters" class="history-filters" autocomplete="off" hidden>
                 <div class="history-filters__field">
                   <label class="history-filters__label" for="history-filter-player">Joueur</label>
                   <select
@@ -192,14 +215,43 @@
               </div>
             </section>
             <section class="remove-layout__players" aria-labelledby="remove-players-title">
-              <h2 id="remove-players-title" class="panel__subtitle panel__subtitle--muted">
-                Retirer un joueur
-              </h2>
-              <p class="remove-players__hint">À utiliser seulement en cas de départ définitif.</p>
-              <ul id="remove-players" class="remove-players" role="list"></ul>
-              <p id="remove-players-empty" class="remove-players__empty" hidden>
-                Aucun joueur à retirer
-              </p>
+              <button
+                id="remove-players-toggle"
+                class="remove-players__toggle"
+                type="button"
+                aria-controls="remove-players-panel"
+                aria-expanded="false"
+              >
+                <span class="remove-players__toggle-label">Supprimer un joueur</span>
+                <svg
+                  class="remove-players__toggle-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M6.22 9.22a.75.75 0 0 1 1.06 0L12 13.94l4.72-4.72a.75.75 0 1 1 1.06 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0L6.22 10.28a.75.75 0 0 1 0-1.06Z"
+                  />
+                </svg>
+              </button>
+              <div
+                id="remove-players-panel"
+                class="remove-players__panel"
+                role="region"
+                aria-labelledby="remove-players-title"
+                hidden
+              >
+                <h2 id="remove-players-title" class="panel__subtitle panel__subtitle--muted">
+                  Supprimer un joueur
+                </h2>
+                <p class="remove-players__hint">À utiliser seulement en cas de départ définitif.</p>
+                <ul id="remove-players" class="remove-players" role="list"></ul>
+                <p id="remove-players-empty" class="remove-players__empty" hidden>
+                  Aucun joueur à retirer
+                </p>
+              </div>
             </section>
           </div>
         </section>

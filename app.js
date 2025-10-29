@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://qgwuszmggenuysrghcdi.supabase.co';
 const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd3Vzem1nZ2VudXlzcmdoY2RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1Nzk0MzAsImV4cCI6MjA3NzE1NTQzMH0.FAc4B8EdNiCVN3XGoZX90fnbumZFQwKhgxgNCoSxLcA';
 const GAME_CODE = 'BELGFR';
-const APP_VERSION = '0.11';
+const APP_VERSION = '0.12';
 const DEFAULT_INITIAL_SCORE = 0;
 const DEFAULT_PLAYERS = [
   { name: 'Eliott', initial_score: DEFAULT_INITIAL_SCORE },
@@ -52,12 +52,15 @@ const addPlayersContainer = document.querySelector('#add-players');
 const historyList = document.querySelector('#history');
 const historyEmpty = document.querySelector('#history-empty');
 const historyFiltersForm = document.querySelector('#history-filters');
+const historyFiltersToggle = document.querySelector('#history-filters-toggle');
 const historyPlayerFilter = document.querySelector('#history-filter-player');
 const historyOrderFilter = document.querySelector('#history-filter-order');
 const historyResetFilter = document.querySelector('#history-filter-reset');
 const historyEmptyDefaultText = historyEmpty?.textContent ?? '';
 const removePlayersList = document.querySelector('#remove-players');
 const removePlayersEmpty = document.querySelector('#remove-players-empty');
+const removePlayersToggle = document.querySelector('#remove-players-toggle');
+const removePlayersPanel = document.querySelector('#remove-players-panel');
 const statusElement = document.querySelector('#status');
 const versionBadge = document.querySelector('.app__version');
 const tabButtons = document.querySelectorAll('.tabs__button');
@@ -79,6 +82,12 @@ let game;
 let channel;
 let isInitialLoad = true;
 let isPlayerFormOpen = false;
+let areHistoryFiltersVisible = historyFiltersForm
+  ? !historyFiltersForm.hasAttribute('hidden')
+  : false;
+let isRemovePanelVisible = removePlayersPanel
+  ? !removePlayersPanel.hasAttribute('hidden')
+  : false;
 
 const state = {
   players: [],
@@ -115,6 +124,22 @@ function hasActiveHistoryFilters() {
   return (
     historyFilters.playerId !== 'all' || historyFilters.order !== DEFAULT_HISTORY_ORDER
   );
+}
+
+function setHistoryFiltersVisibility(isVisible) {
+  if (!historyFiltersForm || !historyFiltersToggle) return;
+  areHistoryFiltersVisible = isVisible;
+  historyFiltersForm.hidden = !isVisible;
+  historyFiltersToggle.setAttribute('aria-expanded', String(isVisible));
+  historyFiltersToggle.classList.toggle('history-filters__toggle--open', isVisible);
+}
+
+function setRemovePlayersVisibility(isVisible) {
+  if (!removePlayersPanel || !removePlayersToggle) return;
+  isRemovePanelVisible = isVisible;
+  removePlayersPanel.hidden = !isVisible;
+  removePlayersToggle.setAttribute('aria-expanded', String(isVisible));
+  removePlayersToggle.classList.toggle('remove-players__toggle--open', isVisible);
 }
 
 function filterHistoryEntries(entries) {
@@ -182,8 +207,15 @@ function populateHistoryPlayerFilter(players) {
 }
 
 function syncHistoryResetState() {
-  if (!historyResetFilter) return;
-  historyResetFilter.disabled = !hasActiveHistoryFilters();
+  if (historyResetFilter) {
+    historyResetFilter.disabled = !hasActiveHistoryFilters();
+  }
+  if (historyFiltersToggle) {
+    historyFiltersToggle.classList.toggle(
+      'history-filters__toggle--active',
+      hasActiveHistoryFilters()
+    );
+  }
 }
 
 function setStatus(message = '', tone = 'info') {
@@ -543,8 +575,8 @@ function renderPlayerRemoval(players, ranking) {
     action.className = 'remove-player__action';
     action.type = 'button';
     action.dataset.removePlayer = 'true';
-    action.textContent = 'Retirer';
-    action.setAttribute('aria-label', `Retirer ${player.name} de la partie`);
+    action.textContent = 'Supprimer';
+    action.setAttribute('aria-label', `Supprimer ${player.name} de la partie`);
 
     item.append(content, action);
     removePlayersList.append(item);
@@ -933,6 +965,12 @@ function attachHistoryEvents() {
     });
   }
 
+  if (historyFiltersToggle && historyFiltersForm) {
+    historyFiltersToggle.addEventListener('click', () => {
+      setHistoryFiltersVisibility(!areHistoryFiltersVisible);
+    });
+  }
+
   if (historyPlayerFilter) {
     historyPlayerFilter.addEventListener('change', (event) => {
       const target = event.target;
@@ -1018,6 +1056,12 @@ function attachPlayerRemovalEvents() {
     const playerName = item?.dataset.playerName ?? 'joueur';
     deletePlayer(playerId, { triggerButton: target, playerName });
   });
+
+  if (removePlayersToggle && removePlayersPanel) {
+    removePlayersToggle.addEventListener('click', () => {
+      setRemovePlayersVisibility(!isRemovePanelVisible);
+    });
+  }
 }
 
 async function deletePlayer(playerId, { triggerButton, playerName } = {}) {
@@ -1027,7 +1071,7 @@ async function deletePlayer(playerId, { triggerButton, playerName } = {}) {
   if (triggerButton) {
     previousText = triggerButton.textContent;
     triggerButton.disabled = true;
-    triggerButton.textContent = 'Retrait…';
+    triggerButton.textContent = 'Suppression…';
   }
 
   const name = playerName ?? 'joueur';
@@ -1052,7 +1096,7 @@ async function deletePlayer(playerId, { triggerButton, playerName } = {}) {
     setStatus("Impossible de retirer ce joueur.", 'error');
     if (triggerButton) {
       triggerButton.disabled = false;
-      triggerButton.textContent = previousText ?? 'Retirer';
+      triggerButton.textContent = previousText ?? 'Supprimer';
     }
   }
 }
@@ -1167,6 +1211,8 @@ async function init() {
   }
 }
 
+setHistoryFiltersVisibility(areHistoryFiltersVisible);
+setRemovePlayersVisibility(isRemovePanelVisible);
 registerServiceWorker();
 init();
 
